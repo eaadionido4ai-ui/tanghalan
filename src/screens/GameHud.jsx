@@ -228,7 +228,7 @@ export function FireResult({ r, newBadge, Sheet, onAgain, onClose }) {
         <b style={sx('font-weight:900;font-size:15px')}>Safety check</b>
         {r.checks.map(([icon, text, ok], i) => (
           <div key={i} style={sx('display:flex;align-items:center;gap:10px;font-weight:800;font-size:14.5px')}>
-            <span style={{ ...sx('width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex:none'), background: ok ? '#1aa46a' : '#c9d6de' }}>{ok ? '✓' : '–'}</span>
+            <span style={{ ...sx('width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex:none'), background: ok ? '#1aa46a' : '#c9d6de' }}>{ok ? '✓' : ''}</span>
             <span style={{ color: ok ? '#16303f' : '#6b7f8a' }}>{icon} {text}</span>
           </div>
         ))}

@@ -2,6 +2,8 @@
 
 **Three-dimensional Animated Gallery Highlighting Youth-Generated Artworks, Learnings and Narratives**
 
+**Play it online:** https://eaadionido4ai-ui.github.io/tanghalan/ (published from `main`; see "Running it")
+
 TANGHALAN is a walk-in 3D museum where children's drawings, stories, poems, comics and letters about disasters
 become lessons for other children. You pick an animal visitor, walk the halls with Bayani as your guide, and stop at
 each work to look at it or have it read aloud in Filipino or English. The rooms follow the four thematic areas of the
@@ -46,6 +48,9 @@ npm run build          # a web version in dist/, for any static host such as Git
 npm run build:single   # one file, dist-single/index.html, that opens offline with a double-click
 ```
 
+Every push to `main` runs the rules checks, builds `dist/` and publishes it to GitHub Pages
+(`.github/workflows/deploy.yml`; in the repository's Settings, Pages has its source set to GitHub Actions).
+
 `dist/` uses relative paths, so it works from any folder of a site. `dist-single/index.html` holds everything
 inside it (code, fonts, pictures; about 3.7 MB), makes no network requests, and can be copied to a phone, a tablet
 or a USB stick and opened in a browser.
@@ -87,6 +92,8 @@ src/
 tests/
   logic.test.mjs           rules checks, run by npm test
   e2e/                     browser checks (see above)
+.github/workflows/
+  deploy.yml               checks, builds and publishes the web version to GitHub Pages
 ```
 
 A game room is a function that receives a small kit from the runtime (the scene, your character, ways to add things
