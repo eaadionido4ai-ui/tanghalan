@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- TANGHALAN logo B, "Silid": an open 3D room with art on its two walls and a visitor on the floor -->
+  <rect width="100" height="100" rx="24" fill="#fbf6ea"/>
+  <polygon points="18,68 50,50 50,14 18,32" fill="#16384d"/>
+  <polygon points="50,50 82,68 82,32 50,14" fill="#22526e"/>
+  <polygon points="18,68 50,50 82,68 50,86" fill="#e0b04a"/>
+  <path d="M28.7 74 60.7 56M39.3 80 71.3 62" stroke="#c99a35" stroke-width=".9"/>
+  <polyline points="18,32 50,14 82,32" fill="none" stroke="#0b1d2b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <polygon points="25,50.06 43,39.94 43,23.94 25,34.06" fill="#f0c75e"/>
+  <polygon points="27,46.94 41,39.06 41,27.06 27,34.94" fill="#f2760c"/>
+  <polygon points="57,39.94 75,50.06 75,34.06 57,23.94" fill="#f0c75e"/>
+  <polygon points="59,39.06 73,46.94 73,34.94 59,27.06" fill="#8fd1ef"/>
+  <rect x="47.4" y="65" width="5.2" height="9" rx="2.6" fill="#d9650a"/>
+  <circle cx="50" cy="62" r="2.8" fill="#10283a"/>
+</svg>

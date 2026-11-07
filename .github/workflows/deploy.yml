@@ -28,6 +28,8 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      # the installable, offline app needs these two; stop here rather than publish a version without them
+      - run: test -f dist/sw.js && test -f dist/manifest.webmanifest
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
