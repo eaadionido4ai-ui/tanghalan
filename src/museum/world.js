@@ -299,9 +299,11 @@ export function buildWorld(T, renderer, onProgress, onLoad, opts) {
     drawLogo(c, 60, 56, 150);
     c.fillStyle = '#ffc53d'; c.font = '900 40px Nunito'; c.fillText('MALIGAYANG PAGDATING!', 240, 104);
     c.fillStyle = '#fff5df'; c.font = '800 96px "Baloo 2"'; c.fillText('TANGHALAN', 236, 196);
-    // what the name stands for, on two lines, with the letters that spell it in gold
-    c.font = '900 25px Nunito';
+    // what the name stands for, on two lines, with the letters that spell it in gold (smaller type if a line runs long)
     [NAME_PARTS.slice(0, 4), NAME_PARTS.slice(4)].forEach((parts, i) => {
+      c.font = '900 25px Nunito';
+      const long = parts.reduce((sum, [a, b]) => sum + c.measureText(a + b).width, 0);
+      c.font = `900 ${Math.min(25, Math.floor((25 * (w - 140)) / long))}px Nunito`;
       let x = 70;
       parts.forEach(([a, b]) => {
         if (a) { c.fillStyle = '#ffc53d'; c.fillText(a, x, 250 + i * 34); x += c.measureText(a).width; }

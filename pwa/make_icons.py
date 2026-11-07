@@ -1,4 +1,4 @@
-# Makes the app icons in public/ from public/icon.svg (logo B, "Silid"), and puts the same logo in the browser tab
+# Makes the app icons in public/ from public/icon.svg (logo H4, "Mata"), and puts the same logo in the browser tab
 # icon inside index.html. Run it again whenever public/icon.svg changes.
 # Usage: python3 pwa/make_icons.py   (Python 3 with Playwright: pip install playwright, then playwright install chromium)
 import base64, re
@@ -23,7 +23,7 @@ def full_bleed(scale):
 ICONS = [  # file, size in pixels, picture, see-through corners
     ('icon-192.png', 192, SRC, True),
     ('icon-512.png', 512, SRC, True),
-    ('icon-maskable-512.png', 512, full_bleed(0.9), False),
+    ('icon-maskable-512.png', 512, full_bleed(0.84), False),  # 0.84 keeps the eye's corner tips inside the circle
     ('apple-touch-icon.png', 180, full_bleed(1), False),
 ]
 
