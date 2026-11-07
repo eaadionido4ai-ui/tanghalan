@@ -1,6 +1,6 @@
 # TANGHALAN
 
-**Three-dimensional Animated Gallery Highlighting Youth-Generated Artworks, Learnings and Narratives**
+**Three-dimensional Animated Gallery Highlighting Youth-Generated Artworks, Learnings and Disaster Narratives**
 
 **Play it online:** https://eaadionido4ai-ui.github.io/tanghalan/ (published from `main`; see "Running it")
 
@@ -59,7 +59,7 @@ npm run dev            # work on it at http://localhost:5173
 npm test               # check the game rules (tests/logic.test.mjs)
 npm run build          # a web version in dist/, for any static host such as GitHub Pages, installable as an app
 npm run build:single   # one file, dist-single/index.html, that opens offline with a double-click
-python3 pwa/make_icons.py   # remakes the app icons and the tab icon from public/icon.svg (logo B)
+python3 pwa/make_icons.py   # remakes the app icons and the tab icon from public/icon.svg (logo H4)
 ```
 
 Every push to `main` runs the rules checks, builds `dist/` and publishes it to GitHub Pages
@@ -114,7 +114,7 @@ src/
   assets/                  the works' pictures and the room pictures for the Home card
 public/
   manifest.webmanifest     the app's name, colors and icons for installing
-  icon.svg, icon-*.png     logo B, "Silid", as the app icon (made by pwa/make_icons.py)
+  icon.svg, icon-*.png     logo H4, "Mata", as the app icon (made by pwa/make_icons.py)
 pwa/
   plugin.js                build step: adds the install tags to index.html and writes dist/sw.js
   sw.js                    the service worker: keeps every file of this version, answers from that copy first
