@@ -7,12 +7,58 @@ import { loadPrefs, savePrefs, forgetProgress } from './museum/store.js';
 import { sfx } from './rooms/sfx.js';
 import { Home, ABSTRACT } from './screens/Home.jsx';
 import { Museum, Sheet, FullName } from './screens/Museum.jsx';
+import { usePwa, install, applyUpdate, offlineSupported, oneFile, isIos } from './pwa.js';
 
 // The standalone TANGHALAN app: the home page, the museum, and the sheets over them (settings, about, the
 // user manual and the walk-through). Everything stays on the device.
 
 const CARD = 'background:#fff;border-radius:22px;padding:15px 16px;display:flex;flex-direction:column;gap:10px';
 const ROW = 'display:flex;align-items:center;gap:12px;padding:10px 0';
+const SUB = 'display:block;font-weight:700;font-size:13px;line-height:1.4;color:#4f6572';
+const DONE = 'flex:none;background:#e5f6ee;color:#0c6b44;border-radius:999px;padding:6px 10px;font-weight:900;font-size:12.5px;white-space:nowrap';
+
+// Installing TANGHALAN and using it with no internet (see src/pwa.js).
+function AppCard() {
+  const s = usePwa();
+  const installSub = s.installed ? 'It is on this device. Open it from your home screen or app list.'
+    : s.canInstall ? 'Put TANGHALAN on your home screen and open it like any app.'
+      : isIos ? 'In Safari, tap Share, then Add to Home Screen.'
+        : oneFile ? 'This copy is one file. Open the web version to install it.'
+          : 'In your browser menu, choose Install app or Add to Home screen.';
+  const offlineSub = s.offlineReady ? 'Saved on this device. It opens and plays with no internet.'
+    : offlineSupported ? 'Saving the museum on this device. Keep the internet on until this says it is saved.'
+      : oneFile ? 'This copy is one file with everything inside, so it already works with no internet.'
+        : null;
+  return (
+    <div style={sx(CARD)}>
+      <div style={sx(ROW)}>
+        <span style={sx('font-size:22px')}>📲</span>
+        <span style={sx('flex:1;font-weight:900;font-size:16px')}>Install as an app<span style={sx(SUB)}>{installSub}</span></span>
+        {s.installed
+          ? <span style={sx(DONE)}>✓ Installed</span>
+          : s.canInstall && <button onClick={install} {...pr('flex:none;background:#16303f;color:#fff;border-radius:999px;padding:11px 16px;font-weight:900;font-size:14px;box-shadow:0 4px 0 #0a1822', 'transform:translateY(3px);box-shadow:0 1px 0 #0a1822')}>Install</button>}
+      </div>
+      {offlineSub && (
+        <div style={{ ...sx(ROW), borderTop: '1px solid #eef2f4' }}>
+          <span style={sx('font-size:22px')}>📴</span>
+          <span style={sx('flex:1;font-weight:900;font-size:16px')}>No internet needed<span style={sx(SUB)}>{offlineSub}</span></span>
+          {(s.offlineReady || oneFile) && <span style={sx(DONE)}>✓ Ready</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Shown on the home page only, never during a visit, when a newer version has been saved on the device.
+function UpdateBar({ onUpdate, onLater }) {
+  return (
+    <div role="status" aria-live="polite" style={sx('position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom, 0px) + 12px);z-index:25;max-width:560px;margin:0 auto;display:flex;align-items:center;gap:8px;background:#16303f;color:#fff;border-radius:20px;padding:8px 8px 8px 16px;box-shadow:0 10px 26px rgba(8,20,30,.38);animation:bh-up .25s ease-out both')}>
+      <span style={sx('flex:1;min-width:0;font-weight:800;font-size:14px;line-height:1.35')}>A new version of TANGHALAN is ready.</span>
+      <button onClick={onLater} style={sx('flex:none;min-height:44px;padding:0 12px;border-radius:999px;font-weight:900;font-size:13.5px;color:#bcd4e0')}>Later</button>
+      <button onClick={onUpdate} style={sx('flex:none;min-height:44px;padding:0 18px;background:#ffd873;color:#4a2a00;border-radius:999px;font-weight:900;font-size:14px')}>Update</button>
+    </div>
+  );
+}
 
 function Switch({ on, onChange, label }) {
   return (
@@ -37,6 +83,7 @@ function SettingsSheet({ prefs, setPrefs, onClose, onAbout }) {
           </span>
         </div>
       </div>
+      <AppCard />
       {visitor && (
         <div style={sx(CARD)}>
           <div style={sx('font-weight:900;font-size:16px')}>{visitor.e} This visitor's progress</div>
@@ -145,6 +192,8 @@ export function App() {
   const [screen, setScreen] = useState('home');
   const [startRoom, setStartRoom] = useState(null);
   const [sheet, setSheet] = useState(null);
+  const pwa = usePwa();
+  const [later, setLater] = useState(false);
   const prefsRef = useRef(prefs); prefsRef.current = prefs;
   const setPrefs = (p) => { setPrefsState(p); savePrefs(p); };
   useEffect(() => { sfx.setOn(prefs.sound); if (!prefs.sound) { try { window.speechSynthesis.cancel(); } catch (e) { /* no speech */ } } }, [prefs.sound]);
@@ -166,6 +215,7 @@ export function App() {
         ? <Home prefs={prefs} setPrefs={setPrefs} onSheet={setSheet} onEnter={(roomId) => { setStartRoom(roomId); setScreen('museum'); }} />
         : <Museum key={visitor.id + ':' + (startRoom || '')} visitor={visitor} prefs={prefs} setPrefs={setPrefs} speak={speak} startRoom={startRoom}
           sheetOpen={!!sheet} onSettings={() => setSheet('settings')} onExit={() => { try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ } setScreen('home'); }} />}
+      {(screen === 'home' || !visitor) && !sheet && pwa.updateReady && !later && <UpdateBar onUpdate={applyUpdate} onLater={() => setLater(true)} />}
       {sheet === 'settings' && <SettingsSheet prefs={prefs} setPrefs={setPrefs} onClose={() => setSheet(null)} onAbout={() => setSheet('about')} />}
       {sheet === 'about' && <AboutSheet onClose={() => setSheet(null)} />}
       {sheet === 'manual' && <ManualSheet onClose={() => setSheet(null)} onWalk={() => setSheet('walkthrough')} />}

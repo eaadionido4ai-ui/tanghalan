@@ -27,6 +27,19 @@ repository is the standalone version: it runs on its own, fully offline, with no
 > stories are samples of how the museum is envisioned; learners' own works, shared with their parents' consent, will
 > replace them.
 
+## Install it and use it with no internet
+
+TANGHALAN is an installable web app (a PWA). Open the link above once with internet and wait a moment: the whole
+museum (about 3 MB) is saved on the device, and Settings shows "No internet needed: Ready". From then on it opens and
+plays with the internet off.
+
+- **Android, Chrome:** Settings in the app, then Install (or the browser menu, then Install app or Add to Home screen).
+- **iPhone and iPad, Safari:** tap Share, then Add to Home Screen.
+- **Computer, Chrome or Edge:** the install icon in the address bar, or Settings in the app, then Install.
+
+When a newer version is published, the next visit with internet saves it in the background and the home page shows
+"A new version of TANGHALAN is ready" with Update and Later. Nothing changes in the middle of a visit.
+
 ## Where the game rules come from
 
 The Go Bag and Fire Safety rooms bring two games of the BAYANIHanda Game Library into the museum: Go Bag Packing 3D
@@ -44,16 +57,21 @@ You need Node.js 20.19 or newer.
 npm ci                 # install, exactly as locked in package-lock.json
 npm run dev            # work on it at http://localhost:5173
 npm test               # check the game rules (tests/logic.test.mjs)
-npm run build          # a web version in dist/, for any static host such as GitHub Pages
+npm run build          # a web version in dist/, for any static host such as GitHub Pages, installable as an app
 npm run build:single   # one file, dist-single/index.html, that opens offline with a double-click
+python3 pwa/make_icons.py   # remakes the app icons and the tab icon from public/icon.svg (logo B)
 ```
 
 Every push to `main` runs the rules checks, builds `dist/` and publishes it to GitHub Pages
 (`.github/workflows/deploy.yml`; in the repository's Settings, Pages has its source set to GitHub Actions).
 
-`dist/` uses relative paths, so it works from any folder of a site. `dist-single/index.html` holds everything
-inside it (code, fonts, pictures; about 3.7 MB), makes no network requests, and can be copied to a phone, a tablet
-or a USB stick and opened in a browser.
+`dist/` uses relative paths, so it works from any folder of a site. It also holds the app manifest, the icons and
+`sw.js`, the service worker that keeps the app on the device; the build writes `sw.js` with the list of every built
+file and a version made from their contents, so each change replaces the old copy on devices. The service worker
+needs `https://` (or `localhost`), so a copy opened from a folder on disk runs online only.
+`dist-single/index.html` holds everything inside it (code, fonts, pictures; about 3.7 MB), makes no network
+requests, and can be copied to a phone, a tablet or a USB stick and opened in a browser. It has no install files
+because it needs none.
 
 ### Browser checks
 
@@ -67,14 +85,19 @@ python3 tests/e2e/play_easy.py        # both rooms on Easy
 python3 tests/e2e/play_difficult.py   # both rooms on Difficult, plus the map and a drawing's "Try it" link
 python3 tests/e2e/layouts.py          # phone, tablet and a phone held sideways
 python3 tests/e2e/peeks.py            # remakes the two game-room pictures on the Home card
+python3 tests/e2e/pwa.py              # installable, plays with the internet off, offers and applies a new version
 TANGHALAN_DIST=dist-single python3 tests/e2e/play_easy.py   # the same checks on the one-file version
 ```
+
+The Difficult run picks its round at random, and its "tapped ... in 3D" check can miss when the small spare
+batteries are the first thing it taps. Run it again if that is the only failure.
 
 ## How it is put together
 
 ```
 src/
   main.jsx, App.jsx        start-up, settings, About, user manual and walkthrough sheets
+  pwa.js                   installing the app, keeping it on the device, offering a new version
   screens/Home.jsx         the About page that opens first: abstract, credits, visitor picker
   screens/Museum.jsx       the museum screen: buttons, joystick, map, works, game sheets
   screens/GameHud.jsx      what you see while playing: bag bar, tray, item card, fire meters, P-A-S-S buttons, results
@@ -89,6 +112,13 @@ src/
   rooms/items3d.js         the go bag items' 3D models
   rooms/sfx.js             small sounds made in the browser, no audio files
   assets/                  the works' pictures and the room pictures for the Home card
+public/
+  manifest.webmanifest     the app's name, colors and icons for installing
+  icon.svg, icon-*.png     logo B, "Silid", as the app icon (made by pwa/make_icons.py)
+pwa/
+  plugin.js                build step: adds the install tags to index.html and writes dist/sw.js
+  sw.js                    the service worker: keeps every file of this version, answers from that copy first
+  make_icons.py            makes the PNG icons and the tab icon from public/icon.svg
 tests/
   logic.test.mjs           rules checks, run by npm test
   e2e/                     browser checks (see above)
@@ -108,7 +138,8 @@ Nothing leaves the device. There are no accounts, no names (visitors are animals
 requests. Each visitor's progress (works seen, stickers, best stars and badges) is saved in the browser's local
 storage on that device only, so classmates can share a tablet, and Settings can start a visitor over. This follows
 the Data Privacy Act of 2012 (RA 10173) by keeping personal data off the app entirely. Read-aloud uses the voices
-already on the device.
+already on the device. The service worker keeps a copy of the app's own files (code, pictures, fonts, icons) in the
+browser's storage so it opens with no internet; it holds nothing about the visitor and sends nothing anywhere.
 
 ## Credits
 
