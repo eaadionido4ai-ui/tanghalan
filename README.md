@@ -26,7 +26,7 @@ Two rooms are places you play in, not just look at:
 
 TANGHALAN stands on its own: one app with its own name and logo, which runs fully offline.
 
-> 🧪 Subject for code and content validation. Version 0.2.0 is a working prototype for review. The artworks and
+> 🧪 Subject for code and content validation. Version 0.3.0 is a working prototype for review. The artworks and
 > stories are samples of how the museum is envisioned; learners' own works, shared with their parents' consent, will
 > replace them.
 
@@ -50,10 +50,28 @@ and one main button, Enter the museum. Everything else waits behind a tap, so no
 
 - **Who is visiting** is asked only when someone first enters. After that, one tap walks in, and Change lets the
   next child visit as their own animal.
-- **About** holds the abstract, the credits, the notes for teachers and parents, and the privacy line.
-- **How to play** is the short walk-through. **User manual** keeps the place of the detailed manual until it is
-  written.
 - **Bayani** comes when his round button is tapped, and goes when told.
+- **The bar along the bottom** has three buttons. **How to play** opens the practice demo and the written steps.
+  **User manual** keeps the place of the detailed manual until it is written. **About** holds the abstract, the
+  credits, the notes for teachers and parents, and the privacy line.
+
+Every visit starts in the lobby. The two game rooms are reached by walking, or with the map inside the museum.
+
+## The practice demo
+
+How to play opens with a practice demo: a corner of the real museum in a piece of the screen, where a child can try
+the controls before going in. It starts only when Start the practice is tapped, so opening How to play stays light.
+It then says one thing to try at a time, and ticks each off when it is done:
+
+1. Push the joystick to walk (or use the arrow keys).
+2. Drag the view to look around (pinch or roll the mouse wheel to zoom).
+3. Walk up to the big picture. Bayani the hologram appears beside it, as he does in the museum.
+4. Tap Look to open the picture.
+5. Tap Bayani's round button for a tip.
+
+When all five are ticked it says You are ready! and offers Enter the museum. The visitor stays inside the practice
+room (no doorway leads out), the practice rests while most of it is scrolled out of sight, and nothing done in it is
+saved. On a device that cannot show 3D it says so, and the written steps are still there to read.
 
 ## The rules of the game rooms
 
@@ -95,7 +113,8 @@ because it needs none.
 
 ```bash
 npm run build
-python3 tests/e2e/home.py             # the home page: one way in, who is visiting, About, Bayani's card, screen sizes
+python3 tests/e2e/home.py             # the home page: one way in, the bottom bar, who is visiting, About, Bayani's card
+python3 tests/e2e/practice.py         # the practice demo in How to play: its five things, staying in the room, saving nothing
 python3 tests/e2e/guide.py            # Bayani the hologram: when he appears, where he stands, when he goes
 python3 tests/e2e/play_easy.py        # both rooms on Easy
 python3 tests/e2e/play_difficult.py   # both rooms on Difficult, plus the map and a drawing's "Try it" link
@@ -112,9 +131,10 @@ batteries are the first thing it taps. Run it again if that is the only failure.
 
 ```
 src/
-  main.jsx, App.jsx        start-up, and the sheets: who is visiting, settings, About, user manual, walk-through
+  main.jsx, App.jsx        start-up, and the sheets: who is visiting, settings, About, user manual, How to play
   pwa.js                   installing the app, keeping it on the device, offering a new version
-  screens/Home.jsx         the home page: one calm screen with one way in (see above)
+  screens/Home.jsx         the home page: one calm screen with one way in and the bar along the bottom (see above)
+  screens/Practice.jsx     the practice demo in How to play: a corner of the museum to try the controls in
   screens/Museum.jsx       the museum screen: buttons, joystick, map, works, game sheets, what Bayani says
   screens/GameHud.jsx      what you see while playing: bag bar, tray, item card, fire meters, P-A-S-S buttons, results
   ui/logo.js               draws the logo from assets/logo.svg, on the screens and on the 3D signs and rug

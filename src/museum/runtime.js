@@ -5,6 +5,9 @@
 // The game rooms plug in here (opts.rooms): each is a function that gets a small kit (the scene, the
 // player, ways to add things you can walk up to or tap, to steer the stick and the camera) and returns a
 // controller with update(dt), which runs every frame while nothing covers the museum.
+//
+// opts.practice ({ room, x, z, yaw }) makes it the practice corner in How to play: the player starts there and
+// stays in that room, and stats() tells how far they have walked and how much they have looked around.
 
 import { CEIL, SPAWN, room, roomAt } from './content.js';
 import { buildWorld } from './world.js';
@@ -30,11 +33,16 @@ export function createMuseum(canvas, opts) {
   const bayani = makeHologram(T);
   scene.add(me.group, bayani.group);
 
+  const origin = opts.practice || SPAWN; // where the player stands at the start
+  // the practice corner's edges: the floor of its room, a step in from the walls, so no doorway leads out of it
+  const pen = opts.practice ? (() => { const r = room(opts.practice.room), m = RADIUS + 0.12; return { x0: r.x0 + m, x1: r.x1 - m, z0: r.z0 + m, z1: r.z1 - m }; })() : null;
   const S = {
-    x: SPAWN.x, z: SPAWN.z, yaw: SPAWN.yaw, phase: 0, stride: 0,
-    camYaw: SPAWN.yaw + Math.PI, camPitch: 0.36, camDist: 4.2, camShown: 4.2,
+    x: origin.x, z: origin.z, yaw: origin.yaw, phase: 0, stride: 0,
+    camYaw: origin.yaw + Math.PI, camPitch: 0.36, camDist: 4.2, camShown: 4.2,
     move: { x: 0, y: 0 }, keys: new Set(), dragging: false, lastDrag: -10,
     paused: false, room: null, near: null, t: 0, speedK: 1,
+    walked: 0,      // metres walked so far
+    dragged: 0,     // how far a finger or the mouse has dragged the view to look around, in pixels
     aim: null,      // when set, the stick and the keys steer this instead of walking: aim(x, y, dt)
     drag: null,     // when set, dragging the screen goes here instead of turning the camera: drag(dx, dy)
     cam: null,      // when set, the camera goes where this says: cam(S) -> { x, y, z, lx, ly, lz }
@@ -104,7 +112,7 @@ export function createMuseum(canvas, opts) {
     if (downAt) downAt.moved += Math.abs(dx) + Math.abs(dy);
     if (S.drag) { S.drag(dx, dy); return; }
     S.camYaw -= dx * 0.0065; S.camPitch = Math.max(0.1, Math.min(0.9, S.camPitch + dy * 0.0045));
-    S.dragging = true; S.lastDrag = S.t;
+    S.dragging = true; S.lastDrag = S.t; S.dragged += Math.abs(dx) + Math.abs(dy);
   };
   const onUp = (e) => {
     pointers.delete(e.pointerId);
@@ -195,8 +203,9 @@ export function createMuseum(canvas, opts) {
     if (amount > 0.05) {
       const before = { x: S.x, z: S.z };
       slide(S, vx * dt, vz * dt, RADIUS);
+      if (pen) { S.x = Math.max(pen.x0, Math.min(pen.x1, S.x)); S.z = Math.max(pen.z0, Math.min(pen.z1, S.z)); }
       const moved = Math.hypot(S.x - before.x, S.z - before.z);
-      S.phase += moved * 4.2;
+      S.phase += moved * 4.2; S.walked += moved;
       const want = Math.atan2(vx, vz);
       let d = want - S.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); S.yaw += d * Math.min(1, dt * 10);
       // walking forward swings the camera back behind the player
@@ -336,6 +345,8 @@ export function createMuseum(canvas, opts) {
       gone();
     },
     position() { return { x: S.x, z: S.z, yaw: S.yaw }; },
+    // how much the player has done with the controls so far (the practice corner ticks its list off with this)
+    stats() { return { walked: S.walked, dragged: S.dragged }; },
     place(p) {
       if (!p || blocked(p.x, p.z, RADIUS) || !roomAt(p.x, p.z)) return;
       S.x = p.x; S.z = p.z; S.yaw = p.yaw; S.camYaw = p.yaw + Math.PI; S.camShown = 0.6;

@@ -3,23 +3,24 @@ import { sx } from '../ui/sx.js';
 import { Logo } from '../ui/art.jsx';
 import { BayaniChip, HoloBayani, HOLO_CARD, HOLO_LABEL, HOLO_BTN, HOLO_BTN_ON } from '../ui/bayani.jsx';
 import { VALIDATION, CREDITS } from '../ui/people.jsx';
-import { GAMES, TAGLINE, room } from '../museum/content.js';
+import { TAGLINE } from '../museum/content.js';
 import { FullName } from './Museum.jsx';
 import hero from '../assets/home.webp';
 
 // The home page: one calm screen. It says what TANGHALAN is in a line, gives one way in, and names who made it.
-// Everything else waits behind a tap: who is visiting (asked when you enter), the abstract and credits (About),
-// the user manual, the walk-through, and Bayani, who comes when called.
+// Everything else waits behind a tap: who is visiting (asked when you enter), Bayani, who comes when called, and
+// the bar along the bottom with How to play (the practice demo and the written steps), the user manual and About
+// (the abstract and credits).
 
 const cap = (id) => id[0].toUpperCase() + id.slice(1);
 const TIPS_NEW = [
   'Hi! I am Bayani, your hologram guide. Tap Enter the museum, pick an animal, and I will meet you inside.',
   'Inside, walk up to a picture or a story stand. I appear beside it when you stop.',
-  'New here? Tap How to play for a short walk-through.',
+  'New here? Tap How to play. Its practice demo lets you try the joystick before you go in.',
 ];
 const TIPS_BACK = [
   'Welcome back! Tap Enter the museum and I will meet you inside.',
-  'Want to play right away? Pick a game room: pack a go bag, or put out a practice fire.',
+  'Inside, tap the little map to jump to any room. Two of them are game rooms: pack a go bag, or put out a practice fire.',
   'Sharing this device? Tap Change, so each friend visits as their own animal.',
 ];
 
@@ -31,9 +32,18 @@ const Gear = () => (
 const Arrow = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
 );
+// the bar along the bottom: what each button opens, its words, and its picture
+const Icon = ({ children }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
+);
+const NAV = [
+  ['walkthrough', 'How to play', <><circle cx="12" cy="12" r="9" /><path d="M10 8.5v7l5.5-3.5z" /></>],
+  ['manual', 'User manual', <><path d="M12 7c-1.6-1.3-3.8-2-7-2v12c3.2 0 5.4.7 7 2 1.6-1.3 3.8-2 7-2V5c-3.2 0-5.4.7-7 2z" /><path d="M12 7v12" /></>],
+  ['about', 'About', <><circle cx="12" cy="12" r="9" /><path d="M12 11v5.5" /><path d="M12 7.6v.01" /></>],
+];
 
-// visitor: who is visiting, if someone already picked an animal on this device. onEnter(roomId) walks in (the app
-// asks who is visiting first when no one has picked yet); onVisitor opens that picker; onSheet opens a sheet.
+// visitor: who is visiting, if someone already picked an animal on this device. onEnter() walks in (the app asks
+// who is visiting first when no one has picked yet); onVisitor opens that picker; onSheet opens a sheet.
 export function Home({ prefs, visitor, onEnter, onVisitor, onSheet, speak }) {
   const [tip, setTip] = useState(-1); // which of Bayani's lines is showing; -1 when he is not here
   const tips = visitor ? TIPS_BACK : TIPS_NEW;
@@ -56,29 +66,16 @@ export function Home({ prefs, visitor, onEnter, onVisitor, onSheet, speak }) {
             <div className="home-say">
               <h1>Halika, pasok!</h1>
               <p>{TAGLINE}</p>
-              <button className="home-enter" data-enter="" onClick={() => onEnter(null)}>Enter the museum<span><Arrow /></span></button>
+              <button className="home-enter" data-enter="" onClick={() => onEnter()}>Enter the museum<span><Arrow /></span></button>
               {visitor && (
                 <button className="home-who" onClick={onVisitor} aria-label={'Visiting as ' + visitor.id + '. Change the visitor'}>
                   <i style={{ background: visitor.bg }}>{visitor.e}</i>
                   <span>Visiting as <b>{cap(visitor.id)}</b> · <u>Change</u></span>
                 </button>
               )}
-              <div className="home-rooms">
-                Or go straight to a game room
-                <div>
-                  {['gobag', 'fire'].map((id) => (
-                    <button key={id} className="home-pill" onClick={() => onEnter(GAMES[id].room)}><span aria-hidden="true">{GAMES[id].icon}</span>{room(GAMES[id].room).name}</button>
-                  ))}
-                </div>
-              </div>
             </div>
           </main>
 
-          <nav className="home-links" aria-label="More about TANGHALAN">
-            <button onClick={() => onSheet('walkthrough')}>How to play</button>
-            <button onClick={() => onSheet('manual')}>User manual</button>
-            <button onClick={() => onSheet('about')}>About</button>
-          </nav>
           <footer className="home-foot">
             <span><FullName accent="#16303f" /></span>
             <span>{CREDITS[0][0]} <b>{CREDITS[0][1]}</b>, UP Resilience Institute</span>
@@ -86,6 +83,14 @@ export function Home({ prefs, visitor, onEnter, onVisitor, onSheet, speak }) {
           </footer>
         </div>
       </div>
+
+      <nav className="home-nav" aria-label="Learn about TANGHALAN">
+        <div>
+          {NAV.map(([id, label, icon]) => (
+            <button key={id} data-nav={id} onClick={() => onSheet(id)}><Icon>{icon}</Icon><span>{label}</span></button>
+          ))}
+        </div>
+      </nav>
 
       {tip >= 0 && (
         <>
