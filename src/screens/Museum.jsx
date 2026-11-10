@@ -111,7 +111,7 @@ function Loading({ f }) {
 // ---------- the sheets ----------
 export function Sheet({ children, onClose, title, sub, extra }) {
   return (
-    <div style={sx('position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;background:rgba(8,20,30,.94);animation:bh-up .22s ease-out both')}>
+    <div style={sx('position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;background:#0b1a26;animation:bh-up .22s ease-out both')}>
       <div style={sx('flex:none;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top, 0px) + 12px) 14px 10px')}>
         <button onClick={onClose} aria-label="Close" style={sx(BTN)}>✕</button>
         <div style={sx('flex:1;min-width:0;text-align:center;color:#fff')}>
