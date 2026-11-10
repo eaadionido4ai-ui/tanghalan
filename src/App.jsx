@@ -3,15 +3,16 @@ import { sx, pr } from './ui/sx.js';
 import { Logo } from './ui/art.jsx';
 import { Credits } from './ui/people.jsx';
 import { AV } from './data.js';
-import { ABSTRACT, ROOMS, WORKS, GAMES, SAMPLE_NOTE, room } from './museum/content.js';
+import { ABSTRACT, ROOMS, WORKS, GAMES, SAMPLE_NOTE } from './museum/content.js';
 import { loadPrefs, savePrefs, loadProgress, forgetProgress } from './museum/store.js';
 import { sfx } from './rooms/sfx.js';
 import { Home } from './screens/Home.jsx';
 import { Museum, Sheet, FullName } from './screens/Museum.jsx';
+import { Practice } from './screens/Practice.jsx';
 import { usePwa, install, applyUpdate, offlineSupported, oneFile, isIos } from './pwa.js';
 
 // The TANGHALAN app: the home page, the museum, and the sheets over them (who is visiting, settings, about, the
-// user manual and the walk-through). Everything stays on the device.
+// user manual, and How to play with its practice demo). Everything stays on the device.
 
 const CARD = 'background:#fff;border-radius:22px;padding:15px 16px;display:flex;flex-direction:column;gap:10px';
 const ROW = 'display:flex;align-items:center;gap:12px;padding:10px 0';
@@ -52,10 +53,11 @@ function AppCard() {
   );
 }
 
-// Shown on the home page only, never during a visit, when a newer version has been saved on the device.
+// Shown on the home page only (just above its bottom bar), never during a visit, when a newer version has been
+// saved on the device.
 function UpdateBar({ onUpdate, onLater }) {
   return (
-    <div role="status" aria-live="polite" style={sx('position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom, 0px) + 12px);z-index:25;max-width:560px;margin:0 auto;display:flex;align-items:center;gap:8px;background:#16303f;color:#fff;border-radius:20px;padding:8px 8px 8px 16px;box-shadow:0 10px 26px rgba(8,20,30,.38);animation:bh-up .25s ease-out both')}>
+    <div role="status" aria-live="polite" style={sx('position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom, 0px) + 76px);z-index:25;max-width:560px;margin:0 auto;display:flex;align-items:center;gap:8px;background:#16303f;color:#fff;border-radius:20px;padding:8px 8px 8px 16px;box-shadow:0 10px 26px rgba(8,20,30,.38);animation:bh-up .25s ease-out both')}>
       <span style={sx('flex:1;min-width:0;font-weight:800;font-size:14px;line-height:1.35')}>A new version of TANGHALAN is ready.</span>
       <button onClick={onLater} style={sx('flex:none;min-height:44px;padding:0 12px;border-radius:999px;font-weight:900;font-size:13.5px;color:#bcd4e0')}>Later</button>
       <button onClick={onUpdate} style={sx('flex:none;min-height:44px;padding:0 18px;background:#ffd873;color:#4a2a00;border-radius:999px;font-weight:900;font-size:14px')}>Update</button>
@@ -107,8 +109,8 @@ function SettingsSheet({ prefs, setPrefs, onClose, onAbout }) {
 
 // Who is visiting: asked when someone first taps Enter the museum, and reached again from Change on the home page.
 // Visitors are animals, so no names are kept, and each animal has its own progress on this device.
-// intent: where the visitor was headed when asked ({ room }), or null when they only came to change the visitor.
-function VisitorSheet({ prefs, setPrefs, intent, onClose, onGo }) {
+// entering: the visitor was on the way in when asked, so the sheet ends with the way in; otherwise with Done.
+function VisitorSheet({ prefs, setPrefs, entering, onClose, onGo }) {
   const visitor = AV.find((a) => a.id === prefs.visitor) || null;
   const progress = Object.fromEntries(AV.map((a) => [a.id, loadProgress(a.id)]));
   const been = (id) => Object.keys(progress[id].rooms).length + Object.keys(progress[id].seen).length > 0;
@@ -136,9 +138,9 @@ function VisitorSheet({ prefs, setPrefs, intent, onClose, onGo }) {
             : 'Pick an animal. Each one keeps its own progress on this device, so classmates can share a tablet. A check mark means that animal has visited before.'}
         </div>
       </div>
-      {intent
-        ? <button data-go="" disabled={!visitor} onClick={() => onGo(intent.room)} {...pr("background:#d9650a;color:#fff;font:800 20px 'Baloo 2',sans-serif;padding:13px 24px 10px;border-radius:999px;box-shadow:0 5px 0 #a34a05" + (visitor ? '' : ';opacity:.45'), 'transform:translateY(4px);box-shadow:0 1px 0 #a34a05')}>
-          {visitor ? 'Enter ' + (intent.room ? 'the ' + room(intent.room).name : 'the museum') + ' as ' + cap(visitor.id) : 'Pick an animal first'}
+      {entering
+        ? <button data-go="" disabled={!visitor} onClick={onGo} {...pr("background:#d9650a;color:#fff;font:800 20px 'Baloo 2',sans-serif;padding:13px 24px 10px;border-radius:999px;box-shadow:0 5px 0 #a34a05" + (visitor ? '' : ';opacity:.45'), 'transform:translateY(4px);box-shadow:0 1px 0 #a34a05')}>
+          {visitor ? 'Enter the museum as ' + cap(visitor.id) : 'Pick an animal first'}
         </button>
         : <button onClick={onClose} style={sx('background:#16303f;color:#fff;font-weight:900;font-size:16px;padding:13px;border-radius:999px')}>Done</button>}
     </Sheet>
@@ -216,11 +218,16 @@ const WALK = [
   ['🧯', 'Put out a practice fire', 'In the Fire Safety Room, press the fire alarm by the door, then take the extinguisher. Stand a safe distance from the fire with the door behind you, tap Use it here, and do P-A-S-S: Pull the pin, Aim low, Squeeze, Sweep.'],
   ['🍎', 'For grown-ups', 'Visits work best when short and shared. Talk about it after. Progress stays only on this device, and the works on show now are samples.'],
 ];
-function WalkSheet({ onClose }) {
+// How to play: the practice demo (a corner of the museum to try the controls in, see screens/Practice.jsx), then
+// the same things and the rest as written steps. practice is off when How to play is opened during a visit (from
+// Settings, then About): the museum itself is right there to practice in.
+function WalkSheet({ onClose, practice, visitor, speak, onEnter }) {
   const [i, setI] = useState(0);
   const [ic, t, d] = WALK[i];
   return (
-    <Sheet onClose={onClose} title="▶️ How to play" sub={'Step ' + (i + 1) + ' of ' + WALK.length}>
+    <Sheet onClose={onClose} title="▶️ How to play">
+      {practice && <Practice visitor={visitor} speak={speak} onEnter={onEnter} />}
+      <b style={sx('font-size:12px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#bcd4e0;padding:6px 4px 0')}>Read the steps · Step {i + 1} of {WALK.length}</b>
       <div key={i} style={sx(CARD + ';align-items:center;text-align:center;gap:14px;padding:26px 20px;animation:bh-up .25s ease-out both')}>
         <span style={sx('width:96px;height:96px;border-radius:30px;background:#eef6fa;display:flex;align-items:center;justify-content:center;font-size:52px')}>{ic}</span>
         <div style={sx("font:800 26px/1.1 'Baloo 2',sans-serif;padding-top:3px")}>{t}</div>
@@ -240,9 +247,8 @@ function WalkSheet({ onClose }) {
 export function App() {
   const [prefs, setPrefsState] = useState(loadPrefs);
   const [screen, setScreen] = useState('home');
-  const [startRoom, setStartRoom] = useState(null);
   const [sheet, setSheet] = useState(null);
-  const [intent, setIntent] = useState(null); // where a new visitor was headed when asked who is visiting
+  const [entering, setEntering] = useState(false); // a new visitor was on the way in when asked who is visiting
   const pwa = usePwa();
   const [later, setLater] = useState(false);
   const prefsRef = useRef(prefs); prefsRef.current = prefs;
@@ -261,23 +267,23 @@ export function App() {
   const visitor = AV.find((a) => a.id === prefs.visitor) || null;
   const atHome = screen === 'home' || !visitor;
   const quiet = () => { try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ } };
-  const go = (roomId) => { quiet(); setSheet(null); setIntent(null); setStartRoom(roomId || null); setScreen('museum'); };
+  const go = () => { quiet(); setSheet(null); setEntering(false); setScreen('museum'); };
   // the way in: a visitor who is already known walks straight in; a new one is asked who is visiting first
-  const enter = (roomId) => { if (visitor) go(roomId); else { setIntent({ room: roomId || null }); setSheet('visitor'); } };
-  const closeSheet = () => { setSheet(null); setIntent(null); };
+  const enter = () => { quiet(); if (visitor) go(); else { setEntering(true); setSheet('visitor'); } };
+  const closeSheet = () => { quiet(); setSheet(null); setEntering(false); };
 
   return (
     <div style={sx('position:fixed;inset:0;overflow:hidden')}>
       {atHome
-        ? <Home prefs={prefs} visitor={visitor} speak={speak} onSheet={setSheet} onEnter={enter} onVisitor={() => { setIntent(null); setSheet('visitor'); }} />
-        : <Museum key={visitor.id + ':' + (startRoom || '')} visitor={visitor} prefs={prefs} setPrefs={setPrefs} speak={speak} startRoom={startRoom}
+        ? <Home prefs={prefs} visitor={visitor} speak={speak} onSheet={setSheet} onEnter={enter} onVisitor={() => { setEntering(false); setSheet('visitor'); }} />
+        : <Museum key={visitor.id} visitor={visitor} prefs={prefs} setPrefs={setPrefs} speak={speak}
           sheetOpen={!!sheet} onSettings={() => setSheet('settings')} onExit={() => { quiet(); setScreen('home'); }} />}
       {atHome && !sheet && pwa.updateReady && !later && <UpdateBar onUpdate={applyUpdate} onLater={() => setLater(true)} />}
-      {sheet === 'visitor' && <VisitorSheet prefs={prefs} setPrefs={setPrefs} intent={intent} onClose={closeSheet} onGo={go} />}
+      {sheet === 'visitor' && <VisitorSheet prefs={prefs} setPrefs={setPrefs} entering={entering} onClose={closeSheet} onGo={go} />}
       {sheet === 'settings' && <SettingsSheet prefs={prefs} setPrefs={setPrefs} onClose={closeSheet} onAbout={() => setSheet('about')} />}
       {sheet === 'about' && <AboutSheet onClose={closeSheet} onSheet={setSheet} />}
       {sheet === 'manual' && <ManualSheet onClose={closeSheet} onWalk={() => setSheet('walkthrough')} />}
-      {sheet === 'walkthrough' && <WalkSheet onClose={closeSheet} />}
+      {sheet === 'walkthrough' && <WalkSheet onClose={closeSheet} practice={atHome} visitor={visitor || AV[0]} speak={speak} onEnter={enter} />}
     </div>
   );
 }

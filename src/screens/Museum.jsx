@@ -75,10 +75,11 @@ function useShort() {
   return s;
 }
 
-function Joystick({ onMove, aim }) {
+// size: how wide the stick is (the practice corner in How to play uses a smaller one); style: where it sits
+export function Joystick({ onMove, aim, size = 124, style }) {
   const base = useRef(null), id = useRef(null);
   const [k, setK] = useState([0, 0]);
-  const R = 44;
+  const R = Math.round(size * 0.355), knob = Math.round(size * 0.42);
   const upd = (e) => {
     const b = base.current.getBoundingClientRect();
     let dx = e.clientX - (b.left + b.width / 2), dy = e.clientY - (b.top + b.height / 2);
@@ -91,8 +92,8 @@ function Joystick({ onMove, aim }) {
       onPointerDown={(e) => { id.current = e.pointerId; e.currentTarget.setPointerCapture(e.pointerId); upd(e); }}
       onPointerMove={(e) => { if (e.pointerId === id.current) upd(e); }}
       onPointerUp={end} onPointerCancel={end}
-      style={{ ...sx('position:absolute;left:22px;bottom:calc(env(safe-area-inset-bottom, 0px) + 26px);width:124px;height:124px;border-radius:50%;touch-action:none;z-index:5'), background: aim ? 'rgba(198,47,34,.5)' : 'rgba(14,34,51,.45)', border: '2px solid ' + (aim ? 'rgba(255,214,200,.7)' : 'rgba(255,255,255,.35)') }}>
-      <span style={{ ...sx('position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(255,255,255,.92);box-shadow:0 2px 6px rgba(0,0,0,.3);pointer-events:none;display:flex;align-items:center;justify-content:center;font-size:22px'), transform: 'translate(' + k[0] + 'px,' + k[1] + 'px)' }}>{aim ? '🎯' : ''}</span>
+      style={{ ...sx('position:absolute;left:22px;bottom:calc(env(safe-area-inset-bottom, 0px) + 26px);border-radius:50%;touch-action:none;z-index:5'), width: size, height: size, background: aim ? 'rgba(198,47,34,.5)' : 'rgba(14,34,51,.45)', border: '2px solid ' + (aim ? 'rgba(255,214,200,.7)' : 'rgba(255,255,255,.35)'), ...style }}>
+      <span data-joystick-knob="" style={{ ...sx('position:absolute;left:50%;top:50%;border-radius:50%;background:rgba(255,255,255,.92);box-shadow:0 2px 6px rgba(0,0,0,.3);pointer-events:none;display:flex;align-items:center;justify-content:center;font-size:22px'), width: knob, height: knob, margin: -knob / 2 + 'px 0 0 ' + -knob / 2 + 'px', transform: 'translate(' + k[0] + 'px,' + k[1] + 'px)' }}>{aim ? '🎯' : ''}</span>
     </div>
   );
 }
@@ -315,7 +316,7 @@ function Gallery({ prog, onOpen, onExit }) {
 }
 
 // ---------- the museum ----------
-export function Museum({ visitor, prefs, setPrefs, speak, onExit, onSettings, startRoom, sheetOpen }) {
+export function Museum({ visitor, prefs, setPrefs, speak, onExit, onSettings, sheetOpen }) {
   const pid = visitor.id;
   const canvasRef = useRef(null);
   const rt = useRef(null);
@@ -323,7 +324,7 @@ export function Museum({ visitor, prefs, setPrefs, speak, onExit, onSettings, st
   const [load, setLoad] = useState(0);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [roomId, setRoomId] = useState(startRoom || 'lobby');
+  const [roomId, setRoomId] = useState('lobby');
   const [near, setNear] = useState(null);
   const [hint, setHint] = useState(null); // what Bayani is saying: { text, help }
   const [open, setOpen] = useState(null);
@@ -434,7 +435,6 @@ export function Museum({ visitor, prefs, setPrefs, speak, onExit, onSettings, st
     const p = progRef.current;
     if (m.rooms.gobag) m.rooms.gobag.setBest(p.games.gobag || null);
     if (m.rooms.fire) m.rooms.fire.setBest(p.games.fire || null);
-    if (startRoom) m.goTo(startRoom);
     return () => { clearTimeout(hintT.current); stopReading(); sfx.hiss(false); m.dispose(); rt.current = null; window.__tanghalan = null; };
   }, []);
 
