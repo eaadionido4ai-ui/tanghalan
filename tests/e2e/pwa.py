@@ -52,7 +52,7 @@ try:
         # ---- internet off ----
         ctx.set_offline(True)
         pg.reload(); pg.wait_for_timeout(1500)
-        run.check(pg.locator('text=Enter the museum').count() == 1, 'with no internet: the home page opens')
+        run.check(pg.locator('[data-enter]').count() == 1, 'with no internet: the home page opens')
         shot('2-offline-home')
         bad = pg.evaluate('fs => Promise.all(fs.map((f) => fetch(f).then((r) => (r.ok ? null : f), () => f))).then((a) => a.filter(Boolean))', files)
         run.check(bad == [], 'with no internet: every file of the app still opens' + (': ' + ', '.join(bad[:5]) if bad else ''))

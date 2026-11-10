@@ -5,9 +5,13 @@
 **Play it online:** https://eaadionido4ai-ui.github.io/tanghalan/ (published from `main`; see "Running it")
 
 TANGHALAN is a walk-in 3D museum where children's drawings, stories, poems, comics and letters about disasters
-become lessons for other children. You pick an animal visitor, walk the halls with Bayani as your guide, and stop at
-each work to look at it or have it read aloud in Filipino or English. The rooms follow the four thematic areas of the
-National Disaster Risk Reduction and Management Plan: Stop Hazards Early, Get Ready, Act Fast and Bounce Back.
+become lessons for other children. You pick an animal visitor, walk the halls, and stop at each work to look at it
+or have it read aloud in Filipino or English. The rooms follow the four thematic areas of the National Disaster Risk
+Reduction and Management Plan: Stop Hazards Early, Get Ready, Act Fast and Bounce Back.
+
+Bayani, the guide, is a hologram. He is not there until he is needed: he greets you when you come in, appears
+beside a work when you stop at it, gives that work's tip when you tap him or his round button, and fades when you
+walk on.
 
 Two rooms are places you play in, not just look at:
 
@@ -20,10 +24,9 @@ Two rooms are places you play in, not just look at:
   squeeze, and sweep from side to side. The fire shrinks as you do it right. On Difficult it grows back when you aim
   too high and the extinguisher runs out, and if the fire is still burning by then, the lesson is the real one: get out.
 
-TANGHALAN is part of the BAYANIHanda Game Library of the University of the Philippines Resilience Institute. This
-repository is the standalone version: it runs on its own, fully offline, with no link to the library needed.
+TANGHALAN stands on its own: one app with its own name and logo, which runs fully offline.
 
-> 🧪 Subject for code and content validation. Version 0.1.0 is a working prototype for review. The artworks and
+> 🧪 Subject for code and content validation. Version 0.2.0 is a working prototype for review. The artworks and
 > stories are samples of how the museum is envisioned; learners' own works, shared with their parents' consent, will
 > replace them.
 
@@ -40,14 +43,25 @@ plays with the internet off.
 When a newer version is published, the next visit with internet saves it in the background and the home page shows
 "A new version of TANGHALAN is ready" with Update and Later. Nothing changes in the middle of a visit.
 
-## Where the game rules come from
+## The home page
 
-The Go Bag and Fire Safety rooms bring two games of the BAYANIHanda Game Library into the museum: Go Bag Packing 3D
-and Fire Extinguisher 3D. Their rules are copied as they are into `src/rooms/logic.js`: the 24 go bag items with
-their notes and weights, a bag that holds 14 weight units, a round of 9 useful things and 5 that could stay home, the
-star ratings, and the extinguisher numbers (how fast the fire drops for each technique, how fast it grows back, how
-fast a Difficult extinguisher empties). The item models in `src/rooms/items3d.js` come from the same game. What
-changed is how you play: your own character does the packing and holds the extinguisher, inside the room.
+The app opens on one calm screen: the logo and name, a picture of the lobby, one line that says what TANGHALAN is,
+and one main button, Enter the museum. Everything else waits behind a tap, so nothing crowds a first-time visitor:
+
+- **Who is visiting** is asked only when someone first enters. After that, one tap walks in, and Change lets the
+  next child visit as their own animal.
+- **About** holds the abstract, the credits, the notes for teachers and parents, and the privacy line.
+- **How to play** is the short walk-through. **User manual** keeps the place of the detailed manual until it is
+  written.
+- **Bayani** comes when his round button is tapped, and goes when told.
+
+## The rules of the game rooms
+
+The rules of both game rooms are kept in `src/rooms/logic.js`, apart from the 3D, so they can be checked on their
+own: the 24 go bag items with their notes and weights, a bag that holds 14 weight units, a round of 9 useful things
+and 5 that could stay home, the star ratings, and the extinguisher numbers (how fast the fire drops for each
+technique, how fast it grows back, how fast a Difficult extinguisher empties). The item models are in
+`src/rooms/items3d.js`. Your own character does the packing and holds the extinguisher, inside the room.
 
 ## Running it
 
@@ -59,7 +73,7 @@ npm run dev            # work on it at http://localhost:5173
 npm test               # check the game rules (tests/logic.test.mjs)
 npm run build          # a web version in dist/, for any static host such as GitHub Pages, installable as an app
 npm run build:single   # one file, dist-single/index.html, that opens offline with a double-click
-python3 pwa/make_icons.py   # remakes the app icons and the tab icon from public/icon.svg (logo H4)
+python3 pwa/make_icons.py   # remakes the app icons and the tab icon from src/assets/logo.svg (logo H4)
 ```
 
 Every push to `main` runs the rules checks, builds `dist/` and publishes it to GitHub Pages
@@ -75,17 +89,19 @@ because it needs none.
 
 ### Browser checks
 
-`tests/e2e/` has checks that play the game rooms in Chromium, the way a child would, and save screenshots to
-`tests/shots/`. They need Python 3 with Playwright (`pip install playwright` then `playwright install chromium`).
-WebGL runs in software, so they work without a graphics card, only slowly.
+`tests/e2e/` has checks that use the app in Chromium, the way a child would, and save screenshots to
+`tests/shots/`. They need Python 3 with Playwright (`pip install playwright` then `playwright install chromium`);
+`home_picture.py` also needs Pillow. WebGL runs in software, so they work without a graphics card, only slowly.
 
 ```bash
 npm run build
+python3 tests/e2e/home.py             # the home page: one way in, who is visiting, About, Bayani's card, screen sizes
+python3 tests/e2e/guide.py            # Bayani the hologram: when he appears, where he stands, when he goes
 python3 tests/e2e/play_easy.py        # both rooms on Easy
 python3 tests/e2e/play_difficult.py   # both rooms on Difficult, plus the map and a drawing's "Try it" link
 python3 tests/e2e/layouts.py          # phone, tablet and a phone held sideways
-python3 tests/e2e/peeks.py            # remakes the two game-room pictures on the Home card
 python3 tests/e2e/pwa.py              # installable, plays with the internet off, offers and applies a new version
+python3 tests/e2e/home_picture.py     # remakes the picture on the home page (then build again to include it)
 TANGHALAN_DIST=dist-single python3 tests/e2e/play_easy.py   # the same checks on the one-file version
 ```
 
@@ -96,14 +112,17 @@ batteries are the first thing it taps. Run it again if that is the only failure.
 
 ```
 src/
-  main.jsx, App.jsx        start-up, settings, About, user manual and walkthrough sheets
+  main.jsx, App.jsx        start-up, and the sheets: who is visiting, settings, About, user manual, walk-through
   pwa.js                   installing the app, keeping it on the device, offering a new version
-  screens/Home.jsx         the About page that opens first: abstract, credits, visitor picker
-  screens/Museum.jsx       the museum screen: buttons, joystick, map, works, game sheets
+  screens/Home.jsx         the home page: one calm screen with one way in (see above)
+  screens/Museum.jsx       the museum screen: buttons, joystick, map, works, game sheets, what Bayani says
   screens/GameHud.jsx      what you see while playing: bag bar, tray, item card, fire meters, P-A-S-S buttons, results
-  museum/runtime.js        the 3D loop: walking, camera, Bayani, what you are next to, and the kit the game rooms use
+  ui/logo.js               draws the logo from assets/logo.svg, on the screens and on the 3D signs and rug
+  ui/bayani.jsx            Bayani the hologram on the screens: his figure, his round button, his tips
+  museum/runtime.js        the 3D loop: walking, camera, when and where Bayani appears, what you are next to, and
+                           the kit the game rooms use
   museum/world.js          builds the halls, the works on the walls and the story stands
-  museum/characters.js     your character and Bayani; the go bag on the back and the hands that hold things
+  museum/characters.js     your character, and Bayani as a hologram of light; the go bag and the hands that hold things
   museum/content.js        rooms, doors, works and their text, the two games' names and tips
   museum/store.js          each visitor's progress, kept on this device
   rooms/gobag.js           the Go Bag Room: packing table, tables, cabinet, drawers, crate, cooler
@@ -111,14 +130,15 @@ src/
   rooms/logic.js           the two games' rules (see above)
   rooms/items3d.js         the go bag items' 3D models
   rooms/sfx.js             small sounds made in the browser, no audio files
-  assets/                  the works' pictures and the room pictures for the Home card
+  assets/                  logo.svg (logo H4, "Mata": the one source of the logo), the works' pictures, and the
+                           home page picture
 public/
   manifest.webmanifest     the app's name, colors and icons for installing
-  icon.svg, icon-*.png     logo H4, "Mata", as the app icon (made by pwa/make_icons.py)
+  icon-*.png, apple-touch-icon.png   the logo as the app icon (made by pwa/make_icons.py)
 pwa/
   plugin.js                build step: adds the install tags to index.html and writes dist/sw.js
   sw.js                    the service worker: keeps every file of this version, answers from that copy first
-  make_icons.py            makes the PNG icons and the tab icon from public/icon.svg
+  make_icons.py            makes the PNG icons and the tab icon from src/assets/logo.svg
 tests/
   logic.test.mjs           rules checks, run by npm test
   e2e/                     browser checks (see above)
@@ -130,7 +150,7 @@ A game room is a function that receives a small kit from the runtime (the scene,
 you can walk up to or tap, and to borrow the joystick and the camera) and returns a controller with `update(dt)`.
 Adding another room that you play in follows the same pattern.
 
-three.js stays at 0.128.0, the version the BAYANIHanda Game Library uses, so the two can share models and code.
+three.js stays at 0.128.0, the version the museum's 3D code is written and checked against.
 
 ## Privacy
 

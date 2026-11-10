@@ -1,12 +1,15 @@
-// TANGHALAN content: the rooms, the doorways between them, and the works on show.
-// Plain data (from the BAYANIHanda library's src/museum/content.js), with the pictures bundled by the build. World units are metres;
-// north is -z. The works in this first exhibit are samples of how the virtual museum is
-// envisioned: names, ages and places are made up, and the pictures come from
-// design/tanghalan/art.js. Learners' own works, shared with consent, will replace them.
+// TANGHALAN content: what the museum is, the rooms, the doorways between them, and the works on show.
+// Plain data, with the pictures bundled by the build. World units are metres; north is -z. The works in this
+// first exhibit are samples of how the virtual museum is envisioned: names, ages and places are made up.
+// Learners' own works, shared with consent, will replace them.
 
 // What TANGHALAN stands for: each pair is the letters that spell the name, then the rest of the word.
 export const NAME_PARTS = [['T', 'hree-dimensional '], ['An', 'imated '], ['G', 'allery '], ['H', 'ighlighting '], ['', 'Youth-Generated '], ['A', 'rtworks, '], ['L', 'earnings '], ['a', 'nd '], ['', 'Disaster '], ['N', 'arratives']];
 export const FULL_NAME = NAME_PARTS.map((p) => p[0] + p[1]).join('');
+
+// What TANGHALAN is: in one line for the home page, and in full for the About sheet.
+export const TAGLINE = 'A walk-in 3D museum of art and stories by kids about staying safe.';
+export const ABSTRACT = 'TANGHALAN (' + FULL_NAME + ') is a walk-in 3D museum where children\'s drawings, stories, poems, comics and letters about disasters become lessons for other children. Its rooms follow the four thematic areas of the National Disaster Risk Reduction and Management Plan: Stop Hazards Early, Get Ready, Act Fast and Bounce Back. In two game rooms, visitors learn by doing: they pack a go bag in the Go Bag Room, and they press the alarm, take the extinguisher and put out a practice fire in the Fire Safety Room. Every work can be read in Filipino or English and read aloud. TANGHALAN runs offline and keeps each visitor\'s progress only on the device.';
 
 export const SAMPLE_NOTE = 'The artworks and stories here are samples of how the virtual museum is envisioned. Learners\' own works, shared with their parents\' consent, will replace them.';
 
@@ -53,10 +56,6 @@ export const DOORS = [
   { a: 'prep', b: 'gobagroom', axis: 'x', at: -12, from: 10.0, to: 12.6 },
 ];
 
-// Rooms shown in 3D on the Home card, each a picture in src/assets/peek/. The two game rooms' pictures
-// are made by tests/e2e/peeks.py; the others come from the BAYANIHanda Game Library's museum.
-export const PEEK_ROOMS = ['kuwentuhan', 'prep', 'rec', 'gobagroom', 'resp', 'mit', 'fireroom'];
-
 export const SPAWN = { x: 0, z: 4.8, yaw: Math.PI };
 
 export const KINDS = {
@@ -70,7 +69,8 @@ export const KINDS = {
 // wall: [side N|S|E|W of the room, position along that wall, width in metres]
 // stand: [x, z, yaw]: a story stand; readers stand on the side it faces
 // about: what the artist says about a drawing. pages: the text of a story, poem, letter or comic.
-// illus: the drawing shown with a story stand's text. note and game: Bayani's tip and the game it leads to.
+// illus: the drawing shown with a story stand's text. note: Bayani's tip. game: what the tip is about; when it
+// is one of the museum's game rooms (GAMES below), the tip gets a button that takes you there.
 export const WORKS = [
   // Bulwagan ng Bayanihan, the featured hall
   { id: 'bayanihan', kind: 'art', room: 'bulwagan', wall: ['E', -2.35, 2.0], featured: true,
@@ -239,14 +239,11 @@ export function spotOf(w) {
 
 // The picture file for a work: the drawing or written page itself, or a story stand's book.
 const PICS = import.meta.glob('../assets/works/*.webp', { eager: true, import: 'default' });
-const PEEKS = import.meta.glob('../assets/peek/*.webp', { eager: true, import: 'default' });
 export const pic = (name) => PICS['../assets/works/' + name + '.webp'];
-export const peekOf = (roomId) => PEEKS['../assets/peek/' + roomId + '.webp'];
 export const imageOf = (w) => pic(w.stand ? 'book-' + w.id : w.id);
 export const picOf = (w) => pic(w.stand ? w.illus : w.id);
 
-// The two games you play inside the museum, and what the works' tips can lead to. Games that live only in the
-// BAYANIHanda Game Library are named in a work's tip without a Play button.
+// The two games you play inside the museum, and what the works' tips can lead to.
 export const GAMES = {
   gobag: { id: 'gobag', room: 'gobagroom', name: 'Go Bag Challenge', icon: '🎒', badge: ['Go Bag', '🎒'],
     modes: [['🧺', 'Easy', 'On the tables', 'Everything is laid out on three tables. Good for a first try.'],
@@ -259,5 +256,3 @@ export const GAMES = {
     tip: 'Stand a safe distance away, about two big steps back, with a clear way out behind you.',
     remind: 'Only fight a small fire, and only with a clear way out behind you. If the fire is big, spreading, or the room fills with smoke, get out fast, close the door, pull the fire alarm, and call for help.' },
 };
-// Games named in the works' tips that are not in this app (they are in the BAYANIHanda Game Library).
-export const LIBRARY_GAMES = { sapa: ['Guide the Stream', '🏞️'], quake: ['Quake in Order', '🏗️'], path: ['Safe Path', '🧭'], cleanup: ['House Cleanup', '🧹'], cares: ['CARES: Community and Resilience', '🏘️'] };

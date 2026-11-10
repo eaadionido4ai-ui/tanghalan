@@ -315,8 +315,8 @@ export function goBagRoom(K) {
         if (d < best) { best = d; st = s; }
       });
     }
-    // at a table or an open container, the camera rises over your left shoulder (Bayani walks on your right)
-    // and looks down into it, so neither of you stands in the way of what is there
+    // at a table or an open container, the camera rises over your left shoulder and looks down into it, so
+    // you do not stand in the way of what is there
     if (st !== G.station) {
       if (st) K.setCamera(() => {
         const s = G.station || st;

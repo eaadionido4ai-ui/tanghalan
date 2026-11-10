@@ -1,8 +1,8 @@
 {
   "name": "tanghalan",
   "private": true,
-  "version": "0.1.0",
-  "description": "TANGHALAN: a walk-in 3D museum of children's art and stories about disaster risk reduction, with a Go Bag Room and a Fire Safety Room you play in. Offline. Part of the BAYANIHanda family.",
+  "version": "0.2.0",
+  "description": "TANGHALAN: a walk-in 3D museum of children's art and stories about disaster risk reduction, with a hologram guide, a Go Bag Room and a Fire Safety Room you play in. Works offline.",
   "type": "module",
   "scripts": {
     "dev": "vite",

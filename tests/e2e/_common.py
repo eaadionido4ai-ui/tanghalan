@@ -42,11 +42,18 @@ class Run:
         sys.exit(1 if self.fails else 0)
 
 def enter(pg, url, avatar='turtle'):
-    """Open the app, pick a visitor, walk in and close the welcome."""
+    """Open the app, tap Enter the museum, pick a visitor, walk in, close the welcome and Bayani's greeting."""
     pg.goto(url); pg.wait_for_timeout(1500)
-    pg.click(f'[aria-label="Visit as {avatar}"]'); pg.click('text=Enter the museum')
+    pg.click('[data-enter]'); pg.wait_for_timeout(350)
+    pg.click(f'[aria-label="Visit as {avatar}"]'); pg.click('[data-go]')
     pg.wait_for_function(f'{T} && {T}.ready', timeout=90000); pg.wait_for_timeout(800)
     pg.click('text=Start exploring'); pg.wait_for_timeout(400)
+    hush(pg)
+
+def hush(pg):
+    """Close what Bayani is saying, if he is saying something, so it is not in the way of a check or a picture."""
+    said = pg.locator('[data-hint] button').first
+    if said.count(): said.click(); pg.wait_for_timeout(250)
 
 def me(pg): return pg.evaluate(f'{T}.debug()')
 def gb(pg): return pg.evaluate(f'{T}.rooms.gobag.debug()')

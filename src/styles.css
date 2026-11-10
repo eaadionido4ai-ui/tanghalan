@@ -32,6 +32,50 @@ button:focus-visible{outline:4px solid #ffd873;outline-offset:2px}
 @keyframes bh-pop{0%{transform:scale(0) rotate(-20deg);opacity:0}60%{transform:scale(1.25) rotate(6deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
 @keyframes bh-pulse{0%{box-shadow:0 0 0 0 rgba(255,197,61,.8)}70%{box-shadow:0 0 0 16px rgba(255,197,61,0)}100%{box-shadow:0 0 0 0 rgba(255,197,61,0)}}
 
+/* Bayani the hologram (src/ui/bayani.jsx): a small flicker, a line of light passing down, the glow of his button,
+   and being built from the floor up when he appears */
+@keyframes holo-flicker{0%,100%{opacity:1}7%{opacity:.8}9%{opacity:1}52%{opacity:.9}54%{opacity:1}81%{opacity:.76}83%{opacity:1}}
+@keyframes holo-sweep{0%{transform:translateY(-34px);opacity:0}12%{opacity:.5}88%{opacity:.5}100%{transform:translateY(30px);opacity:0}}
+@keyframes holo-glow{0%,100%{box-shadow:0 0 0 4px rgba(92,225,255,.16),0 5px 12px rgba(11,29,43,.28)}50%{box-shadow:0 0 0 7px rgba(92,225,255,.08),0 5px 12px rgba(11,29,43,.28)}}
+@keyframes holo-in{0%{clip-path:inset(100% 0 0 0);filter:brightness(2.2)}60%{clip-path:inset(0 0 0 0);filter:brightness(1.5)}100%{clip-path:inset(0 0 0 0);filter:none}}
+
+/* ---- the home page (src/screens/Home.jsx): one calm screen. The details wait behind About and the sheets. ---- */
+.home{position:absolute;inset:0;background:#fbf6ea}
+.home-in{min-height:100%;max-width:960px;margin:0 auto;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top, 0px) + 12px) 20px calc(env(safe-area-inset-bottom, 0px) + 16px)}
+.home-top{display:flex;align-items:center;gap:8px;min-height:48px}
+.home-name{flex:1;min-width:0;overflow:hidden;white-space:nowrap;font:800 clamp(18px,5.6vw,22px)/1 'Baloo 2',sans-serif;letter-spacing:2.5px;padding:4px 0 0 2px}
+.home-gear{width:44px;height:44px;border-radius:50%;border:1.5px solid #dccfb6;display:flex;align-items:center;justify-content:center;flex:none}
+.home-main{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:22px;padding:16px 0 14px}
+.home-hero{width:100%;max-width:440px;border:6px solid #e0b04a;background:#fff;padding:5px;box-shadow:0 10px 24px rgba(16,40,58,.14)}
+.home-hero img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#e9dfca}
+.home-say{width:100%;max-width:440px;display:flex;flex-direction:column;gap:14px}
+.home-say h1{margin:0;font:700 32px/1.05 'Baloo 2',sans-serif;padding-top:4px}
+.home-say p{margin:-6px 0 0;font-weight:700;font-size:15.5px;line-height:1.5;color:#3d5563}
+.home-enter{min-height:56px;border-radius:999px;background:#16303f;color:#fbf6ea;display:flex;align-items:center;justify-content:center;gap:12px;font:700 20px/1 'Baloo 2',sans-serif;padding:4px 10px 0 26px;box-shadow:0 5px 0 #0a1822}
+.home-enter:active{transform:translateY(3px);box-shadow:0 2px 0 #0a1822}
+.home-enter span{width:34px;height:34px;margin-top:-4px;border-radius:50%;background:#e0b04a;color:#16303f;display:flex;align-items:center;justify-content:center;flex:none}
+.home-who{align-self:flex-start;min-height:44px;margin:-6px 0;display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;color:#3d5563;text-align:left}
+.home-who i{font-style:normal;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex:none}
+.home-who b{color:#16303f;font-weight:900}
+.home-who u{color:#a84d04;font-weight:800;text-underline-offset:3px}
+.home-rooms{display:flex;flex-direction:column;gap:8px;font-weight:800;font-size:13px;color:#4f6572}
+.home-rooms div{display:flex;gap:8px;flex-wrap:wrap}
+.home-pill{min-height:44px;border-radius:999px;border:1.5px solid #dccfb6;background:#fff;color:#16303f;padding:0 15px 0 12px;font-weight:800;font-size:14px;display:flex;align-items:center;gap:7px}
+.home-pill:active{background:#f4ecda}
+.home-links{display:flex;justify-content:center;flex-wrap:wrap;gap:0 6px;border-top:1.5px solid #ece2cd;padding-top:6px}
+.home-links button{min-height:44px;padding:0 12px;font-weight:800;font-size:14px;color:#a84d04}
+.home-foot{display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;padding-top:4px;font-weight:700;font-size:12px;line-height:1.5;color:#4f6572}
+.home-foot>span{max-width:520px}
+.home-foot b{color:#16303f}
+.home-val{border:1.5px solid #e2d7c2;border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800}
+.home-bayani{position:absolute;z-index:6;top:calc(env(safe-area-inset-top, 0px) + 68px);right:16px;width:min(360px,calc(100% - 32px));padding:12px 14px 14px 6px;display:flex;gap:6px;align-items:flex-end;animation:bh-fade .18s ease-out both}
+/* tablets, computers and a phone held sideways: the picture beside the words */
+@media (min-width:760px){
+  .home-main{flex-direction:row;gap:48px}
+  .home-hero{flex:1 1 0;max-width:500px}
+  .home-say{flex:1 1 0;max-width:380px}
+}
+
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
