@@ -1,21 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { sx, pr } from './ui/sx.js';
-import { Mascot, Logo } from './ui/art.jsx';
+import { Logo } from './ui/art.jsx';
 import { Credits } from './ui/people.jsx';
 import { AV } from './data.js';
-import { loadPrefs, savePrefs, forgetProgress } from './museum/store.js';
+import { ABSTRACT, ROOMS, WORKS, GAMES, SAMPLE_NOTE, room } from './museum/content.js';
+import { loadPrefs, savePrefs, loadProgress, forgetProgress } from './museum/store.js';
 import { sfx } from './rooms/sfx.js';
-import { Home, ABSTRACT } from './screens/Home.jsx';
+import { Home } from './screens/Home.jsx';
 import { Museum, Sheet, FullName } from './screens/Museum.jsx';
 import { usePwa, install, applyUpdate, offlineSupported, oneFile, isIos } from './pwa.js';
 
-// The standalone TANGHALAN app: the home page, the museum, and the sheets over them (settings, about, the
+// The TANGHALAN app: the home page, the museum, and the sheets over them (who is visiting, settings, about, the
 // user manual and the walk-through). Everything stays on the device.
 
 const CARD = 'background:#fff;border-radius:22px;padding:15px 16px;display:flex;flex-direction:column;gap:10px';
 const ROW = 'display:flex;align-items:center;gap:12px;padding:10px 0';
 const SUB = 'display:block;font-weight:700;font-size:13px;line-height:1.4;color:#4f6572';
 const DONE = 'flex:none;background:#e5f6ee;color:#0c6b44;border-radius:999px;padding:6px 10px;font-weight:900;font-size:12.5px;white-space:nowrap';
+const LABEL = 'font-size:12px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#4f6572';
+const cap = (id) => id[0].toUpperCase() + id.slice(1);
 
 // Installing TANGHALAN and using it with no internet (see src/pwa.js).
 function AppCard() {
@@ -97,31 +100,78 @@ function SettingsSheet({ prefs, setPrefs, onClose, onAbout }) {
         </div>
       )}
       <button onClick={onAbout} style={sx('align-self:center;background:#fff;border-radius:999px;padding:11px 18px;font-weight:900;font-size:14.5px')}>ℹ️ About TANGHALAN</button>
-      <div style={sx('text-align:center;font-weight:700;font-size:12px;color:#9fb6c3')}>TANGHALAN standalone · version {__APP_VERSION__}</div>
+      <div style={sx('text-align:center;font-weight:700;font-size:12px;color:#9fb6c3')}>TANGHALAN · version {__APP_VERSION__}</div>
     </Sheet>
   );
 }
 
-function AboutSheet({ onClose }) {
+// Who is visiting: asked when someone first taps Enter the museum, and reached again from Change on the home page.
+// Visitors are animals, so no names are kept, and each animal has its own progress on this device.
+// intent: where the visitor was headed when asked ({ room }), or null when they only came to change the visitor.
+function VisitorSheet({ prefs, setPrefs, intent, onClose, onGo }) {
+  const visitor = AV.find((a) => a.id === prefs.visitor) || null;
+  const progress = Object.fromEntries(AV.map((a) => [a.id, loadProgress(a.id)]));
+  const been = (id) => Object.keys(progress[id].rooms).length + Object.keys(progress[id].seen).length > 0;
+  const prog = visitor && progress[visitor.id];
+  const badges = prog ? ['gobag', 'fire'].filter((g) => prog.games[g] && prog.games[g].badge) : [];
   return (
-    <Sheet onClose={onClose} title="ℹ️ About TANGHALAN">
+    <Sheet onClose={onClose} title="Who is visiting?">
+      <div style={sx(CARD + ';gap:14px')}>
+        <div style={sx('display:grid;grid-template-columns:repeat(4,1fr);gap:8px')}>
+          {AV.map((a) => {
+            const on = visitor && visitor.id === a.id;
+            return (
+              <button key={a.id} onClick={() => setPrefs({ ...prefs, visitor: a.id })} aria-pressed={!!on} aria-label={'Visit as ' + a.id}
+                style={{ ...sx('position:relative;border-radius:18px;padding:10px 2px 7px;display:flex;flex-direction:column;align-items:center;gap:1px;transition:transform .15s'), background: a.bg, boxShadow: on ? 'inset 0 0 0 4px #16303f' : 'none', transform: on ? 'scale(1.04)' : 'none' }}>
+                <span style={sx('font-size:32px;line-height:1.15')}>{a.e}</span>
+                <span style={sx('font-weight:900;font-size:12px;color:#16303f')}>{cap(a.id)}</span>
+                {been(a.id) && <span aria-hidden="true" style={sx('position:absolute;top:5px;right:5px;width:17px;height:17px;border-radius:50%;background:#16303f;color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center')}>✓</span>}
+              </button>
+            );
+          })}
+        </div>
+        <div aria-live="polite" style={sx('font-weight:800;font-size:13.5px;line-height:1.45;color:#4f6572')}>
+          {visitor
+            ? <>Visiting as <b style={sx('color:#16303f')}>{visitor.e} {cap(visitor.id)}</b> · {Object.keys(prog.rooms).length} of {ROOMS.length} rooms · {Object.keys(prog.seen).length} of {WORKS.length} works{badges.length ? ' · ' + badges.map((g) => '🏅 ' + GAMES[g].badge[0]).join(' ') : ''}</>
+            : 'Pick an animal. Each one keeps its own progress on this device, so classmates can share a tablet. A check mark means that animal has visited before.'}
+        </div>
+      </div>
+      {intent
+        ? <button data-go="" disabled={!visitor} onClick={() => onGo(intent.room)} {...pr("background:#d9650a;color:#fff;font:800 20px 'Baloo 2',sans-serif;padding:13px 24px 10px;border-radius:999px;box-shadow:0 5px 0 #a34a05" + (visitor ? '' : ';opacity:.45'), 'transform:translateY(4px);box-shadow:0 1px 0 #a34a05')}>
+          {visitor ? 'Enter ' + (intent.room ? 'the ' + room(intent.room).name : 'the museum') + ' as ' + cap(visitor.id) : 'Pick an animal first'}
+        </button>
+        : <button onClick={onClose} style={sx('background:#16303f;color:#fff;font-weight:900;font-size:16px;padding:13px;border-radius:999px')}>Done</button>}
+    </Sheet>
+  );
+}
+
+// About: what the home page only hints at. The abstract, who made it, notes for grown-ups, and the ways to learn
+// how it works.
+function AboutSheet({ onClose, onSheet }) {
+  return (
+    <Sheet onClose={onClose} title="About TANGHALAN">
       <div style={sx(CARD + ';align-items:center;text-align:center')}>
-        <Logo size={56} />
-        <div style={sx("font:800 32px/1 'Baloo 2',sans-serif;letter-spacing:1.5px;color:#d9650a;padding-top:4px")}>TANGHALAN</div>
+        <Logo size={64} shadow="0 4px 10px rgba(22,48,63,.18)" />
+        <div style={sx("font:800 30px/1 'Baloo 2',sans-serif;letter-spacing:2.5px;color:#16303f;padding-top:6px")}>TANGHALAN</div>
         <div style={sx('font-weight:800;font-size:13.5px;line-height:1.45;color:#4f6572')}><FullName accent="#d9650a" /></div>
       </div>
       <div style={sx(CARD)}>
-        <b style={sx('font-size:12px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#4f6572')}>Abstract</b>
+        <b style={sx(LABEL)}>Abstract</b>
         <p style={sx('margin:0;font-weight:700;font-size:14.5px;line-height:1.55;color:#25404e')}>{ABSTRACT}</p>
       </div>
       <div style={sx(CARD + ';align-items:center')}><Credits /></div>
       <div style={sx(CARD)}>
-        <b style={sx('font-size:12px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#4f6572')}>Where the game rooms come from</b>
-        <p style={sx('margin:0;font-weight:700;font-size:14px;line-height:1.5;color:#25404e')}>The Go Bag Room and the Fire Safety Room bring two games of the BAYANIHanda Game Library into the museum: Go Bag Packing 3D and Fire Extinguisher 3D. Their items, notes, rules and stars are the same; here your own character does the packing and holds the extinguisher.</p>
+        <b style={sx(LABEL)}>For teachers and parents</b>
+        <p style={sx('margin:0;font-weight:700;font-size:14px;line-height:1.5;color:#25404e')}>Short visits work best, ideally two or three children to a device with a grown-up nearby, followed by a short talk: What did you see? How did it make you feel? What will you do? Learners' own works will be added only with their parents' consent and the child's agreement.</p>
+        <div style={sx('display:flex;gap:10px;align-items:flex-start;background:#fff1e3;border-radius:16px;padding:12px 14px;font-weight:800;font-size:13px;line-height:1.5;color:#5c3500')}>
+          <span style={sx('flex:none;font-size:10.5px;font-weight:900;letter-spacing:.6px;background:#d9650a;color:#fff;border-radius:999px;padding:3px 8px;margin-top:2px')}>SAMPLE</span>
+          <span>{SAMPLE_NOTE} Their names, ages and places are made up.</span>
+        </div>
+        <div style={sx('font-weight:700;font-size:12.5px;line-height:1.5;color:#4f6572')}>🔒 Works offline. No sign-up, no ads, no chat. Each visitor's progress stays on this device (Republic Act No. 10173, the Data Privacy Act of 2012).</div>
       </div>
-      <div style={sx(CARD)}>
-        <b style={sx('font-size:12px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#4f6572')}>For teachers and parents</b>
-        <p style={sx('margin:0;font-weight:700;font-size:14px;line-height:1.5;color:#25404e')}>Short visits work best, ideally two or three children to a device with a grown-up nearby, followed by a short talk: What did you see? How did it make you feel? What will you do? The works now on show are samples. Learners' own works will be added only with their parents' consent and the child's agreement.</p>
+      <div style={sx('display:flex;gap:10px;flex-wrap:wrap')}>
+        <button onClick={() => onSheet('walkthrough')} style={sx('flex:1;background:#fff;border-radius:999px;padding:12px;font-weight:900;font-size:14.5px;white-space:nowrap')}>▶️ How to play</button>
+        <button onClick={() => onSheet('manual')} style={sx('flex:1;background:#fff;border-radius:999px;padding:12px;font-weight:900;font-size:14.5px;white-space:nowrap')}>📘 User manual</button>
       </div>
       <button onClick={onClose} style={sx('background:#16303f;color:#fff;font-weight:900;font-size:16px;padding:13px;border-radius:999px')}>Close</button>
     </Sheet>
@@ -159,9 +209,9 @@ function ManualSheet({ onClose, onWalk }) {
 }
 
 const WALK = [
-  ['🏛️', 'Welcome to TANGHALAN', 'A museum of drawings, stories, poems, comics and letters by kids, about staying safe and helping each other. Pick your animal on the home page and come in.'],
+  ['🏛️', 'Welcome to TANGHALAN', 'A museum of drawings, stories, poems, comics and letters by kids, about staying safe and helping each other. Tap Enter the museum, pick your animal and come in.'],
   ['🕹️', 'Walk and look around', 'Move with the joystick, or the arrow keys on a computer. Drag the screen to look around and pinch to zoom. Tap the little map to see where you are or to jump to a room.'],
-  ['🖼️', 'Meet the works', 'Walk up to a picture or a story stand and tap Look or Read. Switch between Filipino and English, tap Read it to me, and give a sticker. Bayani adds a tip to every work.'],
+  ['🖼️', 'Meet the works', 'Walk up to a picture or a story stand and tap Look or Read. Switch between Filipino and English, tap Read it to me, and give a sticker. Bayani, the hologram guide, appears beside each work with a tip. Tap his round button any time you need him.'],
   ['🎒', 'Pack a go bag', 'In the Go Bag Room, take an empty go bag from the packing table. Walk to the tables (on Difficult, open the cabinet, the drawers, the crate and the cooler), tap a thing to look at it, then pack it or leave it. Watch the weight: a heavy bag slows you down. Zip it up when you are ready.'],
   ['🧯', 'Put out a practice fire', 'In the Fire Safety Room, press the fire alarm by the door, then take the extinguisher. Stand a safe distance from the fire with the door behind you, tap Use it here, and do P-A-S-S: Pull the pin, Aim low, Squeeze, Sweep.'],
   ['🍎', 'For grown-ups', 'Visits work best when short and shared. Talk about it after. Progress stays only on this device, and the works on show now are samples.'],
@@ -192,6 +242,7 @@ export function App() {
   const [screen, setScreen] = useState('home');
   const [startRoom, setStartRoom] = useState(null);
   const [sheet, setSheet] = useState(null);
+  const [intent, setIntent] = useState(null); // where a new visitor was headed when asked who is visiting
   const pwa = usePwa();
   const [later, setLater] = useState(false);
   const prefsRef = useRef(prefs); prefsRef.current = prefs;
@@ -207,21 +258,26 @@ export function App() {
       window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
     } catch (e) { /* no speech on this device */ }
   };
-  const visitor = AV.find((a) => a.id === prefs.visitor);
+  const visitor = AV.find((a) => a.id === prefs.visitor) || null;
+  const atHome = screen === 'home' || !visitor;
+  const quiet = () => { try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ } };
+  const go = (roomId) => { quiet(); setSheet(null); setIntent(null); setStartRoom(roomId || null); setScreen('museum'); };
+  // the way in: a visitor who is already known walks straight in; a new one is asked who is visiting first
+  const enter = (roomId) => { if (visitor) go(roomId); else { setIntent({ room: roomId || null }); setSheet('visitor'); } };
+  const closeSheet = () => { setSheet(null); setIntent(null); };
 
   return (
     <div style={sx('position:fixed;inset:0;overflow:hidden')}>
-      {screen === 'home' || !visitor
-        ? <Home prefs={prefs} setPrefs={setPrefs} onSheet={setSheet} onEnter={(roomId) => { setStartRoom(roomId); setScreen('museum'); }} />
+      {atHome
+        ? <Home prefs={prefs} visitor={visitor} speak={speak} onSheet={setSheet} onEnter={enter} onVisitor={() => { setIntent(null); setSheet('visitor'); }} />
         : <Museum key={visitor.id + ':' + (startRoom || '')} visitor={visitor} prefs={prefs} setPrefs={setPrefs} speak={speak} startRoom={startRoom}
-          sheetOpen={!!sheet} onSettings={() => setSheet('settings')} onExit={() => { try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ } setScreen('home'); }} />}
-      {(screen === 'home' || !visitor) && !sheet && pwa.updateReady && !later && <UpdateBar onUpdate={applyUpdate} onLater={() => setLater(true)} />}
-      {sheet === 'settings' && <SettingsSheet prefs={prefs} setPrefs={setPrefs} onClose={() => setSheet(null)} onAbout={() => setSheet('about')} />}
-      {sheet === 'about' && <AboutSheet onClose={() => setSheet(null)} />}
-      {sheet === 'manual' && <ManualSheet onClose={() => setSheet(null)} onWalk={() => setSheet('walkthrough')} />}
-      {sheet === 'walkthrough' && <WalkSheet onClose={() => setSheet(null)} />}
+          sheetOpen={!!sheet} onSettings={() => setSheet('settings')} onExit={() => { quiet(); setScreen('home'); }} />}
+      {atHome && !sheet && pwa.updateReady && !later && <UpdateBar onUpdate={applyUpdate} onLater={() => setLater(true)} />}
+      {sheet === 'visitor' && <VisitorSheet prefs={prefs} setPrefs={setPrefs} intent={intent} onClose={closeSheet} onGo={go} />}
+      {sheet === 'settings' && <SettingsSheet prefs={prefs} setPrefs={setPrefs} onClose={closeSheet} onAbout={() => setSheet('about')} />}
+      {sheet === 'about' && <AboutSheet onClose={closeSheet} onSheet={setSheet} />}
+      {sheet === 'manual' && <ManualSheet onClose={closeSheet} onWalk={() => setSheet('walkthrough')} />}
+      {sheet === 'walkthrough' && <WalkSheet onClose={closeSheet} />}
     </div>
   );
 }
-
-export { Mascot };

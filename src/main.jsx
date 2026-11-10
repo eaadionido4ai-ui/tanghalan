@@ -10,7 +10,7 @@ import './styles.css';
 import { App } from './App.jsx';
 import { startPwa } from './pwa.js';
 
-// The museum's 3D code (src/museum, src/rooms) uses three.js r128 from window.THREE, as in the library.
+// The museum's 3D code (src/museum, src/rooms) uses three.js r128 from window.THREE.
 window.THREE = THREE;
 
 // the 3D signs are drawn with these fonts, so load them before anyone walks in

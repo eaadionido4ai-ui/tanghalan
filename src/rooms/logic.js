@@ -1,8 +1,7 @@
-// The rules of the two games, taken from the BAYANIHanda Game Library's engine (public/engine/games.js:
-// ITEMS, Logic.gobag and Logic.fire in "BYANI-Handa Games, prototype v0.2"), so the items, their notes, the
-// scoring and the stars are the same as in Go Bag Packing 3D and Fire Extinguisher 3D. Only the words for the
-// controls changed, because here you play inside the museum.
-// Lead developer of the original games: Edward Andrew A. Dionido, UP Resilience Institute, assisted by AI.
+// The rules of the two game rooms, kept apart from the 3D so they can be checked on their own (npm test): the go
+// bag items with their notes and weights, how a round is dealt and scored, and the numbers behind the practice
+// fire and the extinguisher. The rooms themselves are in gobag.js and fire.js.
+// Lead developer: Edward Andrew A. Dionido, UP Resilience Institute, assisted by AI.
 
 export const ITEMS = [
   { id: 'water', name: 'Water bottle', icon: '💧', good: true, weight: 3, info: 'Clean water keeps you going. Try to pack enough for three days.' },
@@ -104,7 +103,7 @@ export const fire = {
     if ((typeof r.aimAccuracy === 'number' ? r.aimAccuracy : 1) < 0.7) s -= 1;
     return Math.max(1, s);
   },
-  // the original's numbers: the fire drops by rate x 8 a second; on Difficult the extinguisher empties at 6 a second
+  // the numbers: the fire drops by rate x 8 a second; on Difficult the extinguisher empties at 6 a second
   DROP: 8,
   AGENT_USE: 6,
 };

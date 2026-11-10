@@ -1,9 +1,10 @@
-// Builds the TANGHALAN museum with the app's three.js (window.THREE, r128), in the games'
+// Builds the TANGHALAN museum with the app's three.js (window.THREE, r128), in a friendly
 // low-poly style: rooms with tinted walls and colored doorways, framed works with spotlight
 // glows, story stands with open books, signs, and furniture. Returns the scene, the walls and
 // furniture to collide with, and the things a player can look at.
 
 import { CEIL, DOOR_H, ROOMS, DOORS, WORKS, NAME_PARTS, room, wallPoint, spotOf, imageOf } from './content.js';
+import { drawLogo } from '../ui/logo.js';
 
 const PANEL = 0.1; // each room has its own wall panels, so a shared wall is two panels back to back
 const WAINSCOT = 0xe4d3b5;
@@ -30,19 +31,6 @@ function gaps(r, s) {
 
 function roundRect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 function canvas(w, h, paint) { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; paint(cv.getContext('2d'), w, h); return cv; }
-function drawLogo(c, x, y, s) { // logo 1b, the Bayanihan house
-  c.save(); c.translate(x, y); c.scale(s / 100, s / 100);
-  roundRect(c, 0, 0, 100, 100, 25); c.fillStyle = '#cfe6ef'; c.fill(); c.clip();
-  c.fillStyle = '#16303f'; c.strokeStyle = '#16303f'; c.lineWidth = 6; c.lineJoin = 'round';
-  c.beginPath(); c.moveTo(50, 18); c.lineTo(77, 40); c.lineTo(23, 40); c.closePath(); c.fill(); c.stroke();
-  c.fillStyle = '#fff5df'; c.fillRect(30, 39, 40, 18);
-  c.fillStyle = '#f2760c'; roundRect(c, 45, 44, 10, 13, 2); c.fill();
-  c.fillStyle = '#eaa100'; roundRect(c, 18, 56, 64, 6, 3); c.fill();
-  [[27, '#2a6b8f'], [42.3, '#128253'], [57.7, '#f2760c'], [73, '#7a53c6']].forEach(([px, col]) => {
-    c.fillStyle = col; c.beginPath(); c.arc(px, 68.5, 4.6, 0, Math.PI * 2); c.fill(); roundRect(c, px - 5, 74.5, 10, 14, 5); c.fill();
-  });
-  c.restore();
-}
 function fitText(c, text, max, size, weight, family) {
   let s = size;
   do { c.font = weight + ' ' + s + 'px ' + family; s -= 4; } while (c.measureText(text).width > max && s > 12);
@@ -92,19 +80,6 @@ function placardCanvas(w, color) {
     c.fillText(w.medium || (w.kind[0].toUpperCase() + w.kind.slice(1)), 32, 148);
     c.fillStyle = '#d9650a'; roundRect(c, 32, 172, 196, 46, 23); c.fill();
     c.fillStyle = '#fff'; c.font = '900 26px Nunito'; c.fillText('SAMPLE ENTRY', 46, 205);
-  });
-}
-// the screen of a game station
-function stationCanvas(g, earned) {
-  return canvas(1024, 640, (c, w, h) => {
-    const grad = c.createLinearGradient(0, 0, 0, h); grad.addColorStop(0, '#1f4e6b'); grad.addColorStop(1, '#0e2233');
-    c.fillStyle = grad; c.fillRect(0, 0, w, h);
-    c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.font = '170px "Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif'; c.fillText(g.icon, w / 2, 170);
-    c.fillStyle = '#fff5df'; fitText(c, g.name, w - 80, 84, 800, '"Baloo 2"'); c.fillText(g.name, w / 2, 330);
-    c.fillStyle = '#d9650a'; roundRect(c, w / 2 - 190, 400, 380, 110, 55); c.fill();
-    c.fillStyle = '#fff'; c.font = '800 72px "Baloo 2"'; c.fillText('▶ PLAY', w / 2, 462);
-    c.fillStyle = earned ? '#5fd39b' : '#ffc53d'; c.font = '900 40px Nunito'; c.fillText(earned ? '🏅 Badge earned!' : 'Win a badge for your Champion ID', w / 2, 585);
   });
 }
 // a poster on a game room's wall
@@ -340,7 +315,7 @@ export function buildWorld(T, renderer, onProgress, onLoad, opts) {
     c.fillStyle = '#16303f'; c.beginPath(); c.arc(w / 2, w / 2, w / 2 - 30, 0, Math.PI * 2); c.fill();
     drawLogo(c, 136, 136, 240);
   }));
-  const rugL = add(new T.Mesh(new T.CircleGeometry(1.5, 48), new T.MeshLambertMaterial({ map: logoRug })), 0, 0.008, 3.9); rugL.rotation.x = -Math.PI / 2; rugL.rotation.z = Math.PI;
+  const rugL = add(new T.Mesh(new T.CircleGeometry(1.5, 48), new T.MeshLambertMaterial({ map: logoRug })), 0, 0.008, 3.9); rugL.rotation.x = -Math.PI / 2; // the logo reads the right way up as you walk in
 
   // ---- furniture ----
   function bench(x, z, along) {

@@ -2,8 +2,8 @@ import { useId, useState } from 'react';
 import { sx } from './sx.js';
 import PEOPLE from '../people.json';
 
-// The credits, as in the BAYANIHanda Game Library: the validation notice, then who made it. A person with
-// other affiliations (people.json) gets a small cap icon beside the name; tapping it shows or hides them.
+// The credits: the validation notice, then who made it. A person with other affiliations (people.json) gets a
+// small cap icon beside the name; tapping it shows or hides them.
 export const VALIDATION = 'Subject for code and content validation';
 const EA = ['Edward Andrew A. Dionido', 'Science Research Specialist II', 'UPRI'];
 export const CREDITS = [['Conceptualized and developed with AI assistance by', ...EA]];

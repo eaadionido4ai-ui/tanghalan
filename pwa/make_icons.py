@@ -1,5 +1,6 @@
-# Makes the app icons in public/ from public/icon.svg (logo H4, "Mata"), and puts the same logo in the browser tab
-# icon inside index.html. Run it again whenever public/icon.svg changes.
+# Makes the app icons in public/ from src/assets/logo.svg (logo H4, "Mata"), and puts the same logo in the browser
+# tab icon inside index.html. Run it again whenever src/assets/logo.svg changes. The app itself draws the logo from
+# that same file (src/ui/logo.js), so the icons and the screens always match.
 # Usage: python3 pwa/make_icons.py   (Python 3 with Playwright: pip install playwright, then playwright install chromium)
 import base64, re
 from pathlib import Path
@@ -8,14 +9,14 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 PUB = ROOT / 'public'
-SRC = (PUB / 'icon.svg').read_text(encoding='utf-8')
+SRC = (ROOT / 'src' / 'assets' / 'logo.svg').read_text(encoding='utf-8')
 TILE = '<rect width="100" height="100" rx="24" fill="#fbf6ea"/>'
 
 
 def full_bleed(scale):
     """The logo on a plain square with no rounded corners, for icons that the phone crops to its own shape.
     A scale below 1 keeps the room inside the circle Android may crop to (the middle 80 percent)."""
-    assert TILE in SRC, 'public/icon.svg changed its background tile: update TILE in pwa/make_icons.py'
+    assert TILE in SRC, 'src/assets/logo.svg changed its background tile: update TILE in pwa/make_icons.py'
     body = SRC.replace(TILE, '<rect width="100" height="100" fill="#fbf6ea"/>\n  <g transform="translate(50 50) scale(%s) translate(-50 -50)">' % scale)
     return body.replace('</svg>', '  </g>\n</svg>')
 

@@ -1,10 +1,10 @@
-// Small 3D models of the go bag items, from Go Bag Packing 3D (GoBag._make in the BAYANIHanda Game Library's
-// engine), drawn with the museum's matte materials. Each model sits with its base at y = 0.
+// Small 3D models of the go bag items, drawn with the museum's matte materials. Each model sits with its base
+// at y = 0.
 
 export function makeItem(T, id) {
   const g = new T.Group();
   const mats = makeItem.mats || (makeItem.mats = new Map());
-  const M = (c, r, m) => { // the original's roughness and metalness are dropped: the museum is matte
+  const M = (c, r, m) => { // r and m (roughness, metalness) are noted for each part but not used: the museum is matte
     const key = 'm' + c; let mm = mats.get(key);
     if (!mm) { mm = new T.MeshLambertMaterial({ color: c }); mats.set(key, mm); }
     return mm;
@@ -50,7 +50,7 @@ export function makeItem(T, id) {
       add(cyl(0.021, 0.021, 0.03, M(0x111)), 0.026, 0.02);
       add(cyl(0.009, 0.009, 0.018, M(0xd4af37, 0.3, 0.8)), -0.026, 0.129);
       add(cyl(0.009, 0.009, 0.018, M(0xd4af37, 0.3, 0.8)), 0.026, 0.129); break;
-    case "firstaid": // green box, white cross on the front (the library's fix: the red cross is a protected emblem, RA 10530)
+    case "firstaid": // green box, white cross on the front (never a red cross: that is a protected emblem, RA 10530)
       add(box(0.2, 0.13, 0.13, M(0x1e9c5a, 0.6)), 0, 0.065);
       add(box(0.2, 0.035, 0.13, M(0x17834a, 0.6)), 0, 0.13);
       add(box(0.052, 0.016, 0.004, M(0xffffff)), 0, 0.056, 0.067);
@@ -169,7 +169,7 @@ export function makeItem(T, id) {
       add(sph(0.1, M(0xffffff, 0.5)), 0, 0.1);
       add(tor(0.1, 0.02, M(0xe23a2b)), 0, 0.1, 0, 0, 0, 0.5);
       add(tor(0.1, 0.02, M(0x2aa7d6)), 0, 0.1, 0, PI / 2, 0, 0.5);
-      add(tor(0.1, 0.02, M(0xffd23d)), 0, 0.1, 0, 0, PI / 2, 0.5); break; // the original put this ring 1.57 m away (PI / 2 as its z)
+      add(tor(0.1, 0.02, M(0xffd23d)), 0, 0.1, 0, 0, PI / 2, 0.5); break; // PI / 2 is this ring's turn, not how far it sits
     default:
       add(box(0.12, 0.12, 0.12, M(0x9aa7b0)), 0, 0.06);
   }

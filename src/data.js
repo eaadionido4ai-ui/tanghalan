@@ -1,4 +1,4 @@
-// The visitors' animal avatars and the four pillars' colors, as in the BAYANIHanda Game Library (src/data.js).
+// The visitors' animal avatars and the colors of the four thematic areas (the rooms call them pillars).
 
 export const AV = [
   { id: 'turtle', e: '🐢', bg: '#cdebe0' }, { id: 'eagle', e: '🦅', bg: '#ffe1c4' }, { id: 'dragon', e: '🐉', bg: '#d9ccf6' }, { id: 'butterfly', e: '🦋', bg: '#ffd9df' },

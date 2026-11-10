@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { sx, pr } from '../ui/sx.js';
-import { Mascot } from '../ui/art.jsx';
+import { BayaniChip, BayaniTip, HoloBayani, HoloFace, HOLO_CARD } from '../ui/bayani.jsx';
 import { P } from '../data.js';
-import { ROOMS, DOORS, WORKS, KINDS, SAMPLE_NOTE, NAME_PARTS, GAMES, LIBRARY_GAMES, room, roomAt, picOf } from '../museum/content.js';
+import { ROOMS, DOORS, WORKS, KINDS, SAMPLE_NOTE, NAME_PARTS, GAMES, room, picOf } from '../museum/content.js';
 import { createMuseum } from '../museum/runtime.js';
 import { loadProgress, saveProgress } from '../museum/store.js';
 import { readLines, stopReading } from '../museum/speech.js';
@@ -11,9 +11,9 @@ import { fireRoom } from '../rooms/fire.js';
 import { sfx } from '../rooms/sfx.js';
 import { GoBagBar, Tray, LookCard, BagSheet, FireBar, PassControls, ChooseSheet, GoBagResult, FireResult } from './GameHud.jsx';
 
-// TANGHALAN, the walk-in 3D museum, standing on its own. Adapted from the BAYANIHanda Game Library's
-// src/screens/Tanghalan.jsx: the controls, the sheets for a work, the map and the welcome. New here: the two
-// game rooms are played in the museum itself (src/rooms), with their controls and results on this screen.
+// TANGHALAN, the walk-in 3D museum: the controls, the sheets for a work, the map and the welcome. The two game
+// rooms are played in the museum itself (src/rooms), with their controls and results on this screen. Bayani, the
+// hologram guide, is called with the round button at the top, and what he says shows under it.
 
 const TOTAL = WORKS.length;
 const BTN = 'width:48px;height:48px;border-radius:15px;background:rgba(255,255,255,.94);color:#16303f;font-size:20px;font-weight:900;box-shadow:0 4px 0 rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;flex:none';
@@ -21,7 +21,8 @@ const CHIP = 'font-size:11.5px;font-weight:900;border-radius:999px;padding:4px 1
 const CARD = 'background:#fff;border-radius:22px;padding:15px 16px;display:flex;flex-direction:column;gap:10px';
 const SHORT = { bulwagan: 'Bulwagan', kuwentuhan: 'Kuwentuhan', mit: 'Stop Hazards', fireroom: 'Fire Room', gobagroom: 'Go Bag Room' };
 const BAYANI_LINES = [
-  'Hi! Each room has a color: blue, green, orange and purple, like the four pillars.',
+  'Hi! I am a hologram, so I only pop up when you need me: when you stop at a work, or when you tap my button.',
+  'Each room has a color: blue, green, orange and purple, like the four pillars.',
   'The floating 👀 and 📖 bubbles mark the works you have not seen yet.',
   'In the Go Bag Room you can pack a real go bag. In the Fire Safety Room you can put out a practice fire!',
   'Lost? Tap the map at the top to see where you are.',
@@ -99,7 +100,7 @@ function Joystick({ onMove, aim }) {
 function Loading({ f }) {
   return (
     <div style={sx('position:absolute;inset:0;z-index:20;background:radial-gradient(120% 80% at 50% 0%,#24465c,#0e2233);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff;padding:24px;text-align:center')}>
-      <Mascot size={78} bob />
+      <HoloBayani size={84} appear />
       <div style={sx("font:800 26px/1.1 'Baloo 2',sans-serif;padding-top:4px")}>Opening TANGHALAN…</div>
       <div style={sx('max-width:340px;font-weight:800;font-size:13px;line-height:1.45;color:#bcd4e0')}><FullName accent="#ffc53d" /></div>
       <div style={sx('width:min(260px,70vw);height:10px;border-radius:999px;background:rgba(255,255,255,.18);overflow:hidden')}><div style={{ ...sx('height:100%;background:#ffc53d;border-radius:999px;transition:width .2s'), width: Math.round(f * 100) + '%' }} /></div>
@@ -110,7 +111,7 @@ function Loading({ f }) {
 // ---------- the sheets ----------
 export function Sheet({ children, onClose, title, sub, extra }) {
   return (
-    <div style={sx('position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;background:rgba(8,20,30,.94);animation:bh-up .22s ease-out both')}>
+    <div style={sx('position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;background:#0b1a26;animation:bh-up .22s ease-out both')}>
       <div style={sx('flex:none;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top, 0px) + 12px) 14px 10px')}>
         <button onClick={onClose} aria-label="Close" style={sx(BTN)}>✕</button>
         <div style={sx('flex:1;min-width:0;text-align:center;color:#fff')}>
@@ -136,18 +137,19 @@ function Toggle({ lang, setLang }) {
   );
 }
 
-function WorkSheet({ prefs, onNoSound, id, lang, setLang, prog, save, onClose, onPick, onGoPlay }) {
+function WorkSheet({ prefs, id, lang, setLang, prog, save, onClose, onPick, onGoPlay }) {
   const w = WORKS.find((x) => x.id === id);
   const r = room(w.room), list = WORKS.filter((x) => x.room === w.room), idx = list.indexOf(w);
   const pages = w.pages ? w.pages[lang] : [[w.about[lang]]];
   const [page, setPage] = useState(0);
   const [line, setLine] = useState(-1);
   const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(false); // tapped Listen while Sound is off
   useEffect(() => { stopReading(); setPage(0); setLine(-1); setPlaying(false); }, [id, lang]);
   useEffect(() => () => stopReading(), []);
   const stop = () => { stopReading(); setPlaying(false); setLine(-1); };
   const play = () => {
-    if (!prefs.sound) { onNoSound(); return; }
+    if (!prefs.sound) { setMuted(true); return; }
     let p = page;
     setPlaying(true);
     const run = () => readLines(pages[p], lang, (i) => { setPage(p); setLine(i); }, () => {
@@ -157,7 +159,7 @@ function WorkSheet({ prefs, onNoSound, id, lang, setLang, prog, save, onClose, o
   };
   const turn = (d) => { stop(); setPage(page + d); };
   const kind = KINDS[w.kind], pil = P[w.pillar];
-  const here = GAMES[w.game], lib = LIBRARY_GAMES[w.game];
+  const here = GAMES[w.game];
   const frame = w.kind === 'art' ? pil.ring : '#eaa100';
   const sticker = prog.stickers[w.id];
   const give = (e) => { const st = { ...prog.stickers }; if (sticker === e) delete st[w.id]; else st[w.id] = e; save({ ...prog, stickers: st }); };
@@ -200,6 +202,7 @@ function WorkSheet({ prefs, onNoSound, id, lang, setLang, prog, save, onClose, o
         <button onClick={playing ? stop : play} {...pr("display:flex;align-items:center;justify-content:center;gap:8px;background:" + (playing ? '#16303f' : '#d9650a') + ";color:#fff;font:800 18px 'Baloo 2',sans-serif;padding:11px 18px 8px;border-radius:999px;box-shadow:0 5px 0 " + (playing ? '#0b1c27' : '#a34a05'), 'transform:translateY(3px);box-shadow:0 2px 0 ' + (playing ? '#0b1c27' : '#a34a05'))}>
           {playing ? '⏹ Stop' : w.kind === 'art' ? '🔊 Listen to ' + w.by : '🔊 Read it to me'}
         </button>
+        {muted && !prefs.sound && <div role="status" style={sx('text-align:center;font-weight:800;font-size:13.5px;line-height:1.4;color:#a8261a')}>🔇 Sound is off. Close this and turn on Sound in Settings (the ⚙ button) to listen.</div>}
         <div style={sx('display:flex;align-items:center;gap:8px;flex-wrap:wrap')}>
           <span style={sx('font-weight:900;font-size:13px;color:#4f6572;margin-right:2px')}>Give a sticker</span>
           {['❤️', '👏', '🌟'].map((e) => (
@@ -208,15 +211,9 @@ function WorkSheet({ prefs, onNoSound, id, lang, setLang, prog, save, onClose, o
           ))}
         </div>
       </div>
-      <div style={sx('display:flex;align-items:flex-end;gap:10px')}>
-        <span style={sx('flex:none')}><Mascot size={52} /></span>
-        <div style={sx('flex:1;min-width:0;background:#fff5df;border:2px solid #ffe2a8;border-radius:20px 20px 20px 6px;padding:12px 14px;display:flex;flex-direction:column;gap:9px')}>
-          <div style={sx('font-weight:800;font-size:14.5px;line-height:1.45;color:#25404e')}><b style={sx('color:#7a5400')}>Bayani's tip:</b> {w.note}</div>
-          {here
-            ? <button onClick={() => { stopReading(); onGoPlay(here); }} {...pr('align-self:flex-start;display:flex;align-items:center;gap:8px;background:#128253;color:#fff;font-weight:900;font-size:14.5px;padding:9px 15px;border-radius:999px;box-shadow:0 4px 0 #0b5e3b', 'transform:translateY(3px);box-shadow:0 1px 0 #0b5e3b')}>{here.icon} Try it in the {room(here.room).name}</button>
-            : lib && <span style={sx('align-self:flex-start;display:flex;align-items:center;gap:8px;background:#eef2f4;color:#4f6572;font-weight:900;font-size:13px;padding:8px 14px;border-radius:999px;border:2px dashed #b9ccd8;line-height:1.3')}>{lib[1]} {lib[0]} is in the BAYANIHanda Game Library</span>}
-        </div>
-      </div>
+      <BayaniTip extra={here && (
+        <button onClick={() => { stopReading(); onGoPlay(here); }} {...pr('align-self:flex-start;display:flex;align-items:center;gap:8px;background:#128253;color:#fff;font-weight:900;font-size:14.5px;padding:9px 15px;border-radius:999px;box-shadow:0 4px 0 #0b5e3b', 'transform:translateY(3px);box-shadow:0 1px 0 #0b5e3b')}>{here.icon} Try it in the {room(here.room).name}</button>
+      )}>{w.note}</BayaniTip>
     </Sheet>
   );
 }
@@ -262,19 +259,20 @@ function IntroSheet({ onClose }) {
     ['🎒', 'Pack a go bag', 'In the Go Bag Room, take a bag from the packing table and pack it yourself.'],
     ['🧯', 'Put out a practice fire', 'In the Fire Safety Room, press the alarm, take the extinguisher, and use PASS.'],
     ['🗺️', 'Find your way', 'Tap the map to see where you are, or jump to a room.'],
+    [null, 'Ask Bayani', 'Your hologram guide appears when you stop at a work. Tap his round button to call him.'],
   ];
   return (
     <Sheet onClose={onClose} title="Welcome to TANGHALAN">
       <div style={sx(CARD + ';align-items:center;text-align:center')}>
-        <Mascot size={70} wave bob />
+        <HoloBayani size={64} pad wave appear />
         <div style={sx("font:800 26px/1.1 'Baloo 2',sans-serif;padding-top:4px")}>Maligayang pagdating!</div>
         <div style={sx('font-weight:800;font-size:13.5px;line-height:1.45;color:#4f6572')}><b style={sx('color:#16303f;font-weight:900')}>TANGHALAN:</b> <FullName accent="#d9650a" /></div>
-        <p style={sx('margin:0;font-weight:700;font-size:15px;line-height:1.5;color:#25404e')}>TANGHALAN is a museum of art and stories made by kids about staying safe and helping each other. Walk from room to room with Bayani.</p>
+        <p style={sx('margin:0;font-weight:700;font-size:15px;line-height:1.5;color:#25404e')}>TANGHALAN is a museum of art and stories made by kids about staying safe and helping each other. Walk from room to room. Bayani, your hologram guide, appears when you need him.</p>
       </div>
       <div style={sx(CARD)}>
         {steps.map((st) => (
           <div key={st[1]} style={sx('display:flex;gap:12px;align-items:center')}>
-            <span style={sx('width:44px;height:44px;border-radius:14px;background:#eef6fa;display:flex;align-items:center;justify-content:center;font-size:22px;flex:none')}>{st[0]}</span>
+            <span style={sx('width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex:none;overflow:hidden;background:' + (st[0] ? '#eef6fa' : '#0b1d2b'))}>{st[0] || <HoloFace size={38} />}</span>
             <span><b style={sx('display:block;font-weight:900;font-size:15px')}>{st[1]}</b><span style={sx('display:block;font-weight:700;font-size:13.5px;color:#4f6572;line-height:1.4')}>{st[2]}</span></span>
           </div>
         ))}
@@ -327,7 +325,7 @@ export function Museum({ visitor, prefs, setPrefs, speak, onExit, onSettings, st
   const [failed, setFailed] = useState(false);
   const [roomId, setRoomId] = useState(startRoom || 'lobby');
   const [near, setNear] = useState(null);
-  const [hint, setHint] = useState(null);
+  const [hint, setHint] = useState(null); // what Bayani is saying: { text, help }
   const [open, setOpen] = useState(null);
   const [gb, setGb] = useState(null);
   const [fx, setFx] = useState(null);
@@ -337,19 +335,31 @@ export function Museum({ visitor, prefs, setPrefs, speak, onExit, onSettings, st
   const progRef = useRef(prog);
   progRef.current = prog;
   const hintT = useRef(0), greeted = useRef({}), bayaniN = useRef(0), hintRoom = useRef(null);
+  const nearRef = useRef(null), roomRef = useRef(roomId);
+  nearRef.current = near; roomRef.current = roomId;
   const short = useShort();
 
   const save = (p) => { progRef.current = p; setProg(p); saveProgress(pid, p); };
-  const showHint = (text, say, roomId) => {
-    clearTimeout(hintT.current); setHint(text); hintRoom.current = roomId || null;
-    hintT.current = setTimeout(() => setHint(null), 7500);
+  // Bayani says something: his hologram appears in the museum for as long as his words stay on the screen
+  const showHint = (text, say, roomId, help) => {
+    clearTimeout(hintT.current); setHint({ text, help: !!help }); hintRoom.current = roomId || null;
+    hintT.current = setTimeout(hush, 7500);
+    if (rt.current) rt.current.bayaniSays(8);
     if (say) speak(text);
   };
+  const hush = () => { clearTimeout(hintT.current); setHint(null); hintRoom.current = null; if (rt.current) rt.current.bayaniHush(); };
   const exit = () => { stopReading(); onExit(); };
   const close = () => {
     stopReading(); setOpen(null);
     const p = progRef.current;
-    if (!p.done && Object.keys(p.seen).length >= TOTAL) { save({ ...p, done: 1 }); showHint('You saw all ' + TOTAL + ' works in TANGHALAN! Salamat, Champion! 🎉', true); }
+    if (!p.done && Object.keys(p.seen).length >= TOTAL) { save({ ...p, done: 1 }); showHint('You saw all ' + TOTAL + ' works in TANGHALAN! Maraming salamat! 🎉', true); }
+  };
+  // the welcome sheet closes: the first time, remember that it was seen, and Bayani greets you in the room you are in
+  const closeIntro = () => {
+    const first = !progRef.current.intro;
+    if (first) save({ ...progRef.current, intro: true });
+    close();
+    if (first) { const r = room(roomRef.current); greeted.current[r.id] = 1; showHint(r.hint, true, r.id); }
   };
   const see = (id) => { const p = progRef.current; if (!p.seen[id]) save({ ...p, seen: { ...p.seen, [id]: 1 } }); };
   const rooms = () => (rt.current ? rt.current.rooms : {});
@@ -368,9 +378,10 @@ export function Museum({ visitor, prefs, setPrefs, speak, onExit, onSettings, st
       setRoomId(r.id);
       const p = progRef.current;
       if (!p.rooms[r.id]) save({ ...p, rooms: { ...p.rooms, [r.id]: 1 } });
+      if (!p.intro) return; // a first visit opens with the welcome sheet; Bayani greets you when you close it
       if (!greeted.current[r.id]) { greeted.current[r.id] = 1; showHint(r.hint, true, r.id); }
       // a welcome for the room you just left is not shown in the next one
-      else if (hintRoom.current && hintRoom.current !== r.id) { clearTimeout(hintT.current); setHint(null); hintRoom.current = null; }
+      else if (hintRoom.current && hintRoom.current !== r.id) hush();
     },
     open(it) {
       if (it.act) { it.act(); return; }
@@ -378,7 +389,14 @@ export function Museum({ visitor, prefs, setPrefs, speak, onExit, onSettings, st
       if (it.type !== 'work') { setOpen({ type: it.type }); return; }
       see(it.id); setOpen({ type: 'work', id: it.id });
     },
-    bayani() { showHint(BAYANI_LINES[bayaniN.current++ % BAYANI_LINES.length], true); },
+    // Bayani was called (his button, or a tap on his hologram): a tip for the work you are at, or for the game
+    // room you are in, or else the next thing worth knowing about the museum
+    bayani() {
+      const n = nearRef.current, g = room(roomRef.current).game;
+      const text = n && n.type === 'work' ? n.work.note : g ? GAMES[g].tip : BAYANI_LINES[bayaniN.current++ % BAYANI_LINES.length];
+      if (rt.current) rt.current.callBayani();
+      showHint(text, true, null, true);
+    },
     game(type, d) {
       if (type === 'gobag') setGb(d);
       else if (type === 'fire') setFx(d);
@@ -426,8 +444,9 @@ export function Museum({ visitor, prefs, setPrefs, speak, onExit, onSettings, st
   useEffect(() => { if (ready && !progRef.current.intro) setOpen({ type: 'intro' }); }, [ready]);
   useEffect(() => {
     const onKey = (e) => {
-      if (e.code === 'Escape' && (open || look)) { if (look) setLook(null); else close(); }
+      if (e.code === 'Escape' && (open || look)) { if (look) setLook(null); else if (open.type === 'intro') closeIntro(); else close(); }
       else if (e.code === 'KeyM' && !open && !look && ready && !failed && !(fx && fx.pass)) setOpen({ type: 'map' });
+      else if (e.code === 'KeyB' && !open && !look && !sheetOpen && ready && !failed) api.current.bayani();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -450,7 +469,7 @@ export function Museum({ visitor, prefs, setPrefs, speak, onExit, onSettings, st
         <>
           <div style={{ ...sx('position:absolute;left:14px;display:flex;gap:8px;z-index:5'), top }}>
             <button onClick={exit} aria-label="Leave the museum" style={sx(BTN)}>←</button>
-            <button onClick={() => setOpen({ type: 'intro' })} aria-label="How to explore" style={sx(BTN)}>ⓘ</button>
+            <BayaniChip size={48} onClick={() => api.current.bayani()} />
           </div>
           <div style={{ ...sx('position:absolute;left:126px;right:72px;display:flex;justify-content:center;z-index:4;pointer-events:none'), top }}>
             <div style={sx('max-width:100%;min-height:48px;display:flex;flex-direction:column;justify-content:center;background:rgba(14,34,51,.8);border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:5px 14px;color:#fff;text-align:center')}>
@@ -470,12 +489,13 @@ export function Museum({ visitor, prefs, setPrefs, speak, onExit, onSettings, st
             {firing && <FireBar fx={fx} />}
             {passing && fx.hint && <span data-pass-hint="" style={sx('background:rgba(255,255,255,.96);color:#16303f;border-radius:999px;padding:7px 14px;font-weight:900;font-size:14.5px;box-shadow:0 6px 16px rgba(0,0,0,.25)')}>👉 {fx.hint}</span>}
             {hint && !(passing && short) && (
-              <button onClick={() => setHint(null)} style={sx('display:flex;justify-content:flex-start;text-align:left;pointer-events:auto;max-width:100%')}>
-                <span style={sx('display:flex;align-items:center;gap:8px;max-width:440px;background:rgba(255,255,255,.96);color:#16303f;border-radius:20px;padding:5px 14px 5px 6px;box-shadow:0 6px 18px rgba(0,0,0,.25);font-weight:800;font-size:14px;line-height:1.3;animation:bh-up .25s ease-out both')}>
-                  <span style={sx('flex:none;width:42px;height:42px;border-radius:50%;background:#ffe58a;display:flex;align-items:flex-end;justify-content:center;overflow:hidden')}><Mascot size={34} mb={-4} /></span>
-                  {hint}
+              <div data-hint="" style={sx(HOLO_CARD + ';display:flex;align-items:center;gap:8px;max-width:min(440px,100%);padding:5px 12px 5px 5px;pointer-events:auto;animation:bh-up .25s ease-out both')}>
+                <span style={sx('flex:none;width:42px;height:42px;border-radius:50%;background:#10283a;border:1.5px solid rgba(92,225,255,.5);display:flex;align-items:center;justify-content:center;overflow:hidden')}><HoloFace size={36} /></span>
+                <span style={sx('flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start')}>
+                  <button onClick={hush} aria-label={hint.text + ' Tap to close.'} style={sx('text-align:left;font-weight:800;font-size:14px;line-height:1.3;padding:3px 0')}>{hint.text}</button>
+                  {hint.help && <button onClick={() => { hush(); setOpen({ type: 'intro' }); }} style={sx('font-weight:900;font-size:12.5px;color:#5ce1ff;text-decoration:underline;text-underline-offset:3px;padding:3px 0 4px')}>How to explore</button>}
                 </span>
-              </button>
+              </div>
             )}
           </div>
           <Joystick aim={passing} onMove={(x, y) => { if (rt.current) rt.current.setMove(x, y); }} />
@@ -503,14 +523,14 @@ export function Museum({ visitor, prefs, setPrefs, speak, onExit, onSettings, st
           onPack={() => { const g = rooms().gobag; if (g) { if (look.packed) g.unpack(look.id); else g.pack(look.id); } setLook(null); }} />
       )}
       {open && open.type === 'work' && (
-        <WorkSheet prefs={prefs} onNoSound={() => showHint('Turn on Sound in Settings to listen.')} id={open.id} lang={lang} setLang={setLang} prog={prog} save={save} onClose={close}
+        <WorkSheet prefs={prefs} id={open.id} lang={lang} setLang={setLang} prog={prog} save={save} onClose={close}
           onPick={(id) => { see(id); setOpen({ type: 'work', id }); }} onGoPlay={goPlay} />
       )}
       {open && open.type === 'map' && (
         <MapSheet me={visitor.e} prog={prog} roomId={roomId} pos={rt.current ? rt.current.position() : null} onClose={close}
           onGo={(id) => { if (rooms().fire && fx && fx.pass) rooms().fire.exitPass(); if (rt.current) rt.current.goTo(id); close(); }} />
       )}
-      {open && open.type === 'intro' && <IntroSheet onClose={() => { if (!progRef.current.intro) save({ ...progRef.current, intro: true }); close(); }} />}
+      {open && open.type === 'intro' && <IntroSheet onClose={closeIntro} />}
       {open && open.type === 'choose' && (
         <ChooseSheet game={open.game} Sheet={Sheet} onClose={close} onPick={(level) => { const g = rooms()[open.game]; close(); if (g) g.start(level); }} />
       )}

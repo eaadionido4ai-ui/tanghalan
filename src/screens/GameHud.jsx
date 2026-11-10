@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { sx, pr } from '../ui/sx.js';
-import { Mascot, Confetti } from '../ui/art.jsx';
+import { Confetti } from '../ui/art.jsx';
+import { BayaniTip } from '../ui/bayani.jsx';
 import { GAMES } from '../museum/content.js';
 
 // What you see on screen while you play in the two game rooms: the go bag bar and the tray of things at a
@@ -159,10 +160,7 @@ export function ChooseSheet({ game, Sheet, onPick, onClose }) {
   const g = GAMES[game];
   return (
     <Sheet onClose={onClose} title={g.icon + ' ' + g.name} sub="Choose your challenge">
-      <div style={sx('display:flex;align-items:flex-end;gap:10px')}>
-        <span style={sx('flex:none')}><Mascot size={56} wave /></span>
-        <div style={sx('flex:1;background:#fff5df;border:2px solid #ffe2a8;border-radius:20px 20px 20px 6px;padding:12px 14px;font-weight:800;font-size:14.5px;line-height:1.45;color:#25404e')}><b style={sx('color:#7a5400')}>Bayani's tip:</b> {g.tip}</div>
-      </div>
+      <BayaniTip>{g.tip}</BayaniTip>
       {g.modes.map(([icon, level, title, text], i) => (
         <button key={level} onClick={() => onPick(i === 0 ? 'easy' : 'hard')} {...pr('display:flex;gap:14px;align-items:center;text-align:left;background:#fff;border-radius:22px;padding:16px;box-shadow:0 5px 0 rgba(0,0,0,.25)', 'transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.25)')}>
           <span style={{ ...sx('width:58px;height:58px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:30px;flex:none'), background: i ? '#fff1e3' : '#e5f6ee' }}>{icon}</span>

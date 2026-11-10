@@ -1,6 +1,6 @@
 // Runs TANGHALAN: renders the museum, walks the player with the joystick or keys, keeps the
-// camera behind them and inside the walls, lets Bayani follow along, and reports which room
-// the player is in and what they are standing next to.
+// camera behind them and inside the walls, brings in Bayani the hologram guide when he is needed,
+// and reports which room the player is in and what they are standing next to.
 //
 // The game rooms plug in here (opts.rooms): each is a function that gets a small kit (the scene, the
 // player, ways to add things you can walk up to or tap, to steer the stick and the camera) and returns a
@@ -8,7 +8,7 @@
 
 import { CEIL, SPAWN, room, roomAt } from './content.js';
 import { buildWorld } from './world.js';
-import { makeKid } from './characters.js';
+import { makeKid, makeHologram } from './characters.js';
 
 const SPEED = 3.0;          // metres per second
 const RADIUS = 0.3;         // how close the player can get to walls
@@ -27,20 +27,23 @@ export function createMuseum(canvas, opts) {
   const { scene, colliders, items, ring, flicker } = world;
 
   const me = makeKid(T, { shirt: SHIRTS[opts.avatar] || 0xf2760c });
-  const bayani = makeKid(T, { shirt: 0x1f6f8b, hat: true, face: true, cape: true, star: true, wave: true, skin: 0xe8ab70 });
+  const bayani = makeHologram(T);
   scene.add(me.group, bayani.group);
 
   const S = {
     x: SPAWN.x, z: SPAWN.z, yaw: SPAWN.yaw, phase: 0, stride: 0,
     camYaw: SPAWN.yaw + Math.PI, camPitch: 0.36, camDist: 4.2, camShown: 4.2,
-    bx: 1.3, bz: 4.6, byaw: 0, bphase: 0, bstride: 0, stuck: 0,
     move: { x: 0, y: 0 }, keys: new Set(), dragging: false, lastDrag: -10,
     paused: false, room: null, near: null, t: 0, speedK: 1,
     aim: null,      // when set, the stick and the keys steer this instead of walking: aim(x, y, dt)
     drag: null,     // when set, dragging the screen goes here instead of turning the camera: drag(dx, dy)
     cam: null,      // when set, the camera goes where this says: cam(S) -> { x, y, z, lx, ly, lz }
   };
-  bayani.group.position.set(S.bx, 0, S.bz);
+  const clock = () => performance.now() / 1000; // real seconds
+  // Bayani the hologram guide: on when he is here (or building up), k how much of him is there (0 gone .. 1 all
+  // there), where he stands, the work he stands by (at), until when he has something to say, whether that is
+  // new (fresh), and how long you have stood still
+  const H = { on: false, k: 0, x: S.x, z: S.z, yaw: 0, at: null, until: 0, fresh: false, still: 0, last: 0 };
 
   const blocked = (x, z, r) => {
     for (let i = 0; i < colliders.length; i++) { const b = colliders[i]; if (x > b.x0 - r && x < b.x1 + r && z > b.z0 - r && z < b.z1 + r) return true; }
@@ -121,16 +124,17 @@ export function createMuseum(canvas, opts) {
     targets = [];
     items.forEach((it) => { if (!it.hidden) it.targets.forEach((m) => { m.userData.item = it; targets.push(m); }); });
   };
-  const bayaniMeshes = []; bayani.group.traverse((o) => { if (o.isMesh) bayaniMeshes.push(o); });
+  const bayaniMeshes = bayani.meshes;
   function tap(cx, cy) {
     const r = canvas.getBoundingClientRect();
     ndc.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, camera);
-    const hit = ray.intersectObjects(targets.concat(bayaniMeshes), true).find((h) => h.object.visible);
-    if (!hit) return;
+    // things first, then Bayani: he is made of light, so he never blocks a tap on something behind him
+    const hit = ray.intersectObjects(targets, true).find((h) => h.object.visible);
+    if (!hit) { if (H.k > 0.5 && ray.intersectObjects(bayaniMeshes, false).length) opts.onBayani && opts.onBayani(); return; }
     let o = hit.object; while (o && !o.userData.item && o.parent) o = o.parent;
     const it = o && o.userData.item;
-    if (!it) { opts.onBayani && opts.onBayani(); return; }
+    if (!it) return;
     const at = it.spot || it.at || { x: S.x, z: S.z };
     if (Math.hypot(at.x - S.x, at.z - S.z) <= (it.reach || TAP_REACH)) opts.onOpen && opts.onOpen(it);
     else opts.onFar && opts.onFar(it);
@@ -138,7 +142,7 @@ export function createMuseum(canvas, opts) {
 
   // ---- the game rooms ----
   const kit = {
-    T, scene, camera, me, bayani, world,
+    T, scene, camera, me, world,
     get x() { return S.x; }, get z() { return S.z; }, get yaw() { return S.yaw; }, get t() { return S.t; },
     get room() { return S.room; }, get near() { return S.near; },
     addItem(it) { if (items.indexOf(it) < 0) items.push(it); refreshTargets(); return it; },
@@ -204,30 +208,6 @@ export function createMuseum(canvas, opts) {
     S.stride += ((amount > 0.05 ? amount * Math.min(1, S.speedK + 0.15) : 0) - S.stride) * Math.min(1, dt * 8);
     me.group.position.set(S.x, 0, S.z); me.group.rotation.y = S.yaw; me.pose(S.phase, S.stride, S.t, dt);
 
-    // Bayani walks beside you, on your right, so he never blocks the view, and waits facing you
-    const sx = Math.sin(S.yaw), sz = Math.cos(S.yaw), tx = S.x - sx * 0.3 - sz * 1.05, tz = S.z - sz * 0.3 + sx * 1.05;
-    const bdx = tx - S.bx, bdz = tz - S.bz, bd = Math.hypot(bdx, bdz);
-    const B = { x: S.bx, z: S.bz };
-    if (bd > 0.45) {
-      const bsp = Math.min(4.6, 1.6 + bd) * dt;
-      slide(B, (bdx / bd) * Math.min(bsp, bd), (bdz / bd) * Math.min(bsp, bd), 0.28);
-      const moved = Math.hypot(B.x - S.bx, B.z - S.bz);
-      S.stuck = moved < bsp * 0.3 ? S.stuck + dt : 0;
-      S.bphase += moved * 4.2; S.byaw = turn(S.byaw, Math.atan2(bdx, bdz), dt * 8);
-      S.bstride += (Math.min(1, moved / Math.max(dt, 1e-3) / SPEED) - S.bstride) * Math.min(1, dt * 8);
-    } else {
-      S.stuck = 0; S.bstride += (0 - S.bstride) * Math.min(1, dt * 6);
-      S.byaw = turn(S.byaw, Math.atan2(S.x - B.x, S.z - B.z), dt * 4);
-    }
-    if (bd > 7 || S.stuck > 1.2) { // catch up when left behind
-      const spots = [[tx, tz], [S.x - sx * 1.0, S.z - sz * 1.0], [S.x + sz * 0.9, S.z - sx * 0.9], [S.x - sz * 0.9, S.z + sx * 0.9]];
-      const ok = spots.find(([x, z]) => !blocked(x, z, 0.28) && roomAt(x, z) === roomAt(S.x, S.z));
-      if (ok) { B.x = ok[0]; B.z = ok[1]; }
-      S.stuck = 0;
-    }
-    S.bx = B.x; S.bz = B.z;
-    bayani.group.position.set(S.bx, 0, S.bz); bayani.group.rotation.y = S.byaw; bayani.pose(S.bphase, S.bstride, S.t, dt);
-
     // the room you are in, and the work or thing you are next to
     const rm = roomAt(S.x, S.z);
     if (rm && rm !== S.room) { S.room = rm; opts.onRoom && opts.onRoom(rm); }
@@ -239,7 +219,67 @@ export function createMuseum(canvas, opts) {
       if (d < (it.near || NEAR) && d < nd) { nd = d; near = it; }
     }
     if (near !== S.near) setNear(near);
+
+    // Bayani the hologram: he is not there until he is needed. He appears beside a work when you stop at it, and
+    // beside you when he has something to say; he fades when you walk on. While a game has the camera or the
+    // stick, he keeps out of the picture.
+    // he keeps real time (the museum's own clock runs slow on a slow device), so he comes and goes with his words
+    const now = clock(), rdt = Math.min(0.25, Math.max(0, now - (H.last || now))); H.last = now;
+    H.still = amount > 0.05 ? 0 : H.still + rdt;
+    const work = S.near && S.near.type === 'work' ? S.near : null;
+    const busy = !!(S.aim || (S.cam && !S.cam.test));
+    const talking = now < H.until;
+    if (!talking) H.fresh = false;
+    const want = !busy && (talking || (H.on && !!H.at && H.at === work) || (!!work && H.still > 0.5));
+    if (H.on && (!want || (work && H.at !== work && H.still > 0.5) || Math.hypot(H.x - S.x, H.z - S.z) > 4.2 || roomAt(H.x, H.z) !== S.room)) H.on = false;
+    // he comes in at once for something new to say; after you have walked away from him, only once you stop
+    if (want && !H.on && H.k < 0.02 && (H.fresh || H.still > 0.3)) {
+      const at = work && (talking || H.still > 0.5) ? work : null, p = (at && besideWork(at)) || besideMe(amount > 0.05);
+      if (p) {
+        H.on = true; H.fresh = false; H.at = at; H.x = p[0]; H.z = p[1]; H.yaw = Math.atan2(S.x - H.x, S.z - H.z);
+        bayani.wave(1.6);
+      }
+    }
+    H.k += ((H.on ? 1 : 0) - H.k) * Math.min(1, rdt * (H.on ? 4.5 : 9));
+    if (!H.on && H.k < 0.01) H.k = 0;
+    H.yaw = turn(H.yaw, Math.atan2(S.x - H.x, S.z - H.z), dt * 5);
+    bayani.group.position.set(H.x, 0, H.z); bayani.group.rotation.y = H.yaw;
+    bayani.update(H.k, S.t, dt);
   }
+  // where Bayani can stand: free floor in the room you are in
+  const open = (p) => !blocked(p[0], p[1], 0.3) && !!S.room && roomAt(p[0], p[1]) === S.room;
+  // beside you, where the camera sees him: to one side and a little past you. While you walk, a few steps ahead.
+  function besideMe(walking) {
+    const spots = [];
+    if (walking) {
+      const fx = Math.sin(S.yaw), fz = Math.cos(S.yaw); // the way you face; your right is (-fz, fx)
+      [[2.4, 1.0], [2.4, -1.0], [1.5, 1.0], [1.5, -1.0]].forEach(([f, r]) => spots.push([S.x + fx * f - fz * r, S.z + fz * f + fx * r]));
+    }
+    const vx = -Math.sin(S.camYaw), vz = -Math.cos(S.camYaw); // the way the camera looks; its right is (-vz, vx)
+    const tall = camera.aspect < 0.8; // a phone held upright sees less to each side, so he stands closer in and further on
+    (tall ? [[1.0, 0.72], [1.0, -0.72], [1.7, 0.6], [1.7, -0.6]] : [[0.5, 1.05], [0.5, -1.05], [1.2, 0.8], [1.2, -0.8]])
+      .concat([[-0.4, 1.05], [-0.4, -1.05], [1.4, 0], [2.0, 0.8], [2.0, -0.8], [-1.2, 0.8], [-1.2, -0.8]])
+      .forEach(([f, r]) => spots.push([S.x + vx * f - vz * r, S.z + vz * f + vx * r]));
+    return spots.find(open) || null;
+  }
+  // beside a work, like a guide: at its left edge as you look at it (the label hangs on the right), a step out from
+  // the wall. Where a plant or a corner is in the way, he stands at your own side instead.
+  function besideWork(it) {
+    const w = it.work, tall = camera.aspect < 0.8;
+    let cx, cz, nx, nz, side; // the work, the way from it to its reader, and how far to the side he stands
+    if (w.stand) { cx = w.stand[0]; cz = w.stand[1]; nx = Math.sin(w.stand[2]); nz = Math.cos(w.stand[2]); side = 0.95; }
+    else {
+      cx = it.center.x; cz = it.center.z; side = w.wall[2] / 2 + 0.55;
+      const d = Math.hypot(it.spot.x - cx, it.spot.z - cz) || 1; nx = (it.spot.x - cx) / d; nz = (it.spot.z - cz) / d;
+    }
+    const lx = -nz, lz = nx; // the reader's left
+    const out = Math.hypot(it.spot.x - cx, it.spot.z - cz); // how far the reader stands from the work
+    // a phone held upright sees less to each side: he comes in to the picture's corner
+    const first = tall && !w.stand ? [Math.min(side, 1.15), 0.45] : [side, 0.25];
+    const by = tall ? 0.8 : 1.0; // beside you
+    return [first, [by, out], [-by, out], [by, out + 0.7]].map(([l, n]) => [cx + lx * l + nx * n, cz + lz * l + nz * n]).find(open) || null;
+  }
+  function gone() { H.on = false; H.k = 0; H.at = null; bayani.update(0, S.t, 0); }
   function turn(a, b, k) { let d = b - a; d = Math.atan2(Math.sin(d), Math.cos(d)); return a + d * Math.min(1, k); }
   const camAt = new T.Vector3(), camWant = new T.Vector3(), lookWant = new T.Vector3(), lookAt = new T.Vector3();
   let camBlend = 0;
@@ -293,22 +333,31 @@ export function createMuseum(canvas, opts) {
       const into = { lobby: [0, 6.0, Math.PI], bulwagan: [0, -2.2, Math.PI], kuwentuhan: [0, -13.4, Math.PI], mit: [-6.6, -6.0, -Math.PI / 2], prep: [6.6, -6.0, Math.PI / 2], resp: [-6.6, 4.5, -Math.PI / 2], rec: [6.6, 4.5, Math.PI / 2], fireroom: [-6.0, -13.6, -Math.PI / 2], gobagroom: [6.0, -13.6, Math.PI / 2] }[id];
       const [x, z, yaw] = into || [c.x, c.z, Math.PI];
       S.x = x; S.z = z; S.yaw = yaw; S.camYaw = yaw + Math.PI; S.camShown = 0.6;
-      S.bx = x - Math.sin(yaw) * 0.3 - Math.cos(yaw) * 1.05; S.bz = z - Math.cos(yaw) * 0.3 + Math.sin(yaw) * 1.05;
-      if (blocked(S.bx, S.bz, 0.28)) { S.bx = x; S.bz = z + 0.01; }
+      gone();
     },
     position() { return { x: S.x, z: S.z, yaw: S.yaw }; },
     place(p) {
       if (!p || blocked(p.x, p.z, RADIUS) || !roomAt(p.x, p.z)) return;
       S.x = p.x; S.z = p.z; S.yaw = p.yaw; S.camYaw = p.yaw + Math.PI; S.camShown = 0.6;
-      S.bx = p.x - Math.sin(p.yaw) * 0.3 - Math.cos(p.yaw) * 1.05; S.bz = p.z - Math.cos(p.yaw) * 0.3 + Math.sin(p.yaw) * 1.05;
-      if (blocked(S.bx, S.bz, 0.28)) { S.bx = p.x; S.bz = p.z + 0.01; }
+      gone();
     },
+    // Bayani has something to say for this many seconds: he appears beside you, or beside the work you are at
+    bayaniSays(secs) { H.until = clock() + (secs || 7.5); H.fresh = true; },
+    // you called him with his button: he comes, or waves if he is already here
+    callBayani() { H.until = clock() + 7.5; H.fresh = true; if (H.on) bayani.wave(1.4); },
+    // what he said was closed: he goes, unless you are standing at a work
+    bayaniHush() { H.until = 0; },
     // for tests and the walk-through recording: the player's state
-    debug() { return { x: S.x, z: S.z, yaw: S.yaw, room: S.room && S.room.id, near: S.near && S.near.id, aiming: !!S.aim, speed: S.speedK }; },
+    debug() {
+      return {
+        x: S.x, z: S.z, yaw: S.yaw, room: S.room && S.room.id, near: S.near && S.near.id, aiming: !!S.aim, speed: S.speedK,
+        bayani: { on: H.on, shown: Math.round(H.k * 100) / 100, x: H.x, z: H.z, at: H.at && H.at.id, room: (roomAt(H.x, H.z) || {}).id || null },
+      };
+    },
     // for tests and screenshots: hold the camera at a spot, looking at a point (null gives it back)
-    debugCamera(c) { S.cam = c ? () => c : null; },
+    debugCamera(c) { S.cam = c ? Object.assign(() => c, { test: true }) : null; },
     // for tests: the things you can walk up to, and where to stand for each
-    debugItems() { return items.filter((it) => !it.hidden).map((it) => ({ id: it.id, type: it.type, spot: it.spot || it.at || null })); },
+    debugItems() { return items.filter((it) => !it.hidden).map((it) => ({ id: it.id, type: it.type, spot: it.spot || it.at || null, center: it.center || null })); },
     // for tests: where a point in the world shows up on the screen, in page pixels
     screenOf(x, y, z) { const v = new T.Vector3(x, y, z).project(camera), r = canvas.getBoundingClientRect(); return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height, front: v.z < 1 }; },
     dispose() {
