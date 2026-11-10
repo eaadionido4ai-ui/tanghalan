@@ -39,10 +39,11 @@ export function createMuseum(canvas, opts) {
     drag: null,     // when set, dragging the screen goes here instead of turning the camera: drag(dx, dy)
     cam: null,      // when set, the camera goes where this says: cam(S) -> { x, y, z, lx, ly, lz }
   };
+  const clock = () => performance.now() / 1000; // real seconds
   // Bayani the hologram guide: on when he is here (or building up), k how much of him is there (0 gone .. 1 all
   // there), where he stands, the work he stands by (at), until when he has something to say, whether that is
   // new (fresh), and how long you have stood still
-  const H = { on: false, k: 0, x: S.x, z: S.z, yaw: 0, at: null, until: 0, fresh: false, still: 0 };
+  const H = { on: false, k: 0, x: S.x, z: S.z, yaw: 0, at: null, until: 0, fresh: false, still: 0, last: 0 };
 
   const blocked = (x, z, r) => {
     for (let i = 0; i < colliders.length; i++) { const b = colliders[i]; if (x > b.x0 - r && x < b.x1 + r && z > b.z0 - r && z < b.z1 + r) return true; }
@@ -222,22 +223,24 @@ export function createMuseum(canvas, opts) {
     // Bayani the hologram: he is not there until he is needed. He appears beside a work when you stop at it, and
     // beside you when he has something to say; he fades when you walk on. While a game has the camera or the
     // stick, he keeps out of the picture.
-    H.still = amount > 0.05 ? 0 : H.still + dt;
+    // he keeps real time (the museum's own clock runs slow on a slow device), so he comes and goes with his words
+    const now = clock(), rdt = Math.min(0.25, Math.max(0, now - (H.last || now))); H.last = now;
+    H.still = amount > 0.05 ? 0 : H.still + rdt;
     const work = S.near && S.near.type === 'work' ? S.near : null;
     const busy = !!(S.aim || (S.cam && !S.cam.test));
-    const talking = clock() < H.until;
+    const talking = now < H.until;
     if (!talking) H.fresh = false;
     const want = !busy && (talking || (H.on && !!H.at && H.at === work) || (!!work && H.still > 0.5));
     if (H.on && (!want || (work && H.at !== work && H.still > 0.5) || Math.hypot(H.x - S.x, H.z - S.z) > 4.2 || roomAt(H.x, H.z) !== S.room)) H.on = false;
     // he comes in at once for something new to say; after you have walked away from him, only once you stop
     if (want && !H.on && H.k < 0.02 && (H.fresh || H.still > 0.3)) {
-      const at = work && (talking || H.still > 0.5) ? work : null, p = (at && besideWork(at)) || besideMe(H.still === 0);
+      const at = work && (talking || H.still > 0.5) ? work : null, p = (at && besideWork(at)) || besideMe(amount > 0.05);
       if (p) {
         H.on = true; H.fresh = false; H.at = at; H.x = p[0]; H.z = p[1]; H.yaw = Math.atan2(S.x - H.x, S.z - H.z);
         bayani.wave(1.6);
       }
     }
-    H.k += ((H.on ? 1 : 0) - H.k) * Math.min(1, dt * (H.on ? 4.5 : 9));
+    H.k += ((H.on ? 1 : 0) - H.k) * Math.min(1, rdt * (H.on ? 4.5 : 9));
     if (!H.on && H.k < 0.01) H.k = 0;
     H.yaw = turn(H.yaw, Math.atan2(S.x - H.x, S.z - H.z), dt * 5);
     bayani.group.position.set(H.x, 0, H.z); bayani.group.rotation.y = H.yaw;
@@ -277,7 +280,6 @@ export function createMuseum(canvas, opts) {
     return [first, [by, out], [-by, out], [by, out + 0.7]].map(([l, n]) => [cx + lx * l + nx * n, cz + lz * l + nz * n]).find(open) || null;
   }
   function gone() { H.on = false; H.k = 0; H.at = null; bayani.update(0, S.t, 0); }
-  const clock = () => performance.now() / 1000; // real seconds: the museum's own clock (S.t) runs slow on a slow device
   function turn(a, b, k) { let d = b - a; d = Math.atan2(Math.sin(d), Math.cos(d)); return a + d * Math.min(1, k); }
   const camAt = new T.Vector3(), camWant = new T.Vector3(), lookWant = new T.Vector3(), lookAt = new T.Vector3();
   let camBlend = 0;
