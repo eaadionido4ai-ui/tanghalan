@@ -70,6 +70,9 @@ export function makeKid(T, o) {
 
   return {
     group: g,
+    // the parts that move, for the museum's other visitors (people.js): the body, and the hips and the shoulders
+    // the legs and arms hang from (right first)
+    body, legs, arms,
     hands,
     bag,
     // the go bag on the back: shown or not, and how full (0 empty, 1 full, more is over full)

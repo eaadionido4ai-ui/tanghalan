@@ -13,6 +13,12 @@ Bayani, the guide, is a hologram. He is not there until he is needed: he greets 
 beside a work when you stop at it, gives that work's tip when you tap him or his round button, and fades when you
 walk on.
 
+You are not the only visitor. A class on a field trip walks the halls with their teacher, in three small groups:
+each group stops at a work and looks, the teacher explains, a pupil points, and then they go on to another. They
+make way for you: they wait or go round when you are on their path, step aside when you come close, and leave a
+work to you when you stop at it, so nobody stands between you and it. They never go into the two game rooms, so
+your games stay yours. Now and then a pupil waves at you.
+
 Two rooms are places you play in, not just look at:
 
 - **Go Bag Room.** Take an empty go bag from the packing table and it goes on your character's back. Walk to the
@@ -88,13 +94,13 @@ You need Node.js 20.19 or newer.
 ```bash
 npm ci                 # install, exactly as locked in package-lock.json
 npm run dev            # work on it at http://localhost:5173
-npm test               # check the game rules (tests/logic.test.mjs)
+npm test               # check the game rules and the other visitors (tests/logic.test.mjs, tests/visitors.test.mjs)
 npm run build          # a web version in dist/, for any static host such as GitHub Pages, installable as an app
 npm run build:single   # one file, dist-single/index.html, that opens offline with a double-click
 python3 pwa/make_icons.py   # remakes the app icons and the tab icon from src/assets/logo.svg (logo H4)
 ```
 
-Every push to `main` runs the rules checks, builds `dist/` and publishes it to GitHub Pages
+Every push to `main` runs these checks, builds `dist/` and publishes it to GitHub Pages
 (`.github/workflows/deploy.yml`; in the repository's Settings, Pages has its source set to GitHub Actions).
 
 `dist/` uses relative paths, so it works from any folder of a site. It also holds the app manifest, the icons and
@@ -116,6 +122,7 @@ npm run build
 python3 tests/e2e/home.py             # the home page: one way in, the bottom bar, who is visiting, About, Bayani's card
 python3 tests/e2e/practice.py         # the practice demo in How to play: its five things, staying in the room, saving nothing
 python3 tests/e2e/guide.py            # Bayani the hologram: when he appears, where he stands, when he goes
+python3 tests/e2e/visitors.py         # the class on a field trip: where they walk, what they look at, making way for you
 python3 tests/e2e/play_easy.py        # both rooms on Easy
 python3 tests/e2e/play_difficult.py   # both rooms on Difficult, plus the map and a drawing's "Try it" link
 python3 tests/e2e/layouts.py          # phone, tablet and a phone held sideways
@@ -139,10 +146,14 @@ src/
   screens/GameHud.jsx      what you see while playing: bag bar, tray, item card, fire meters, P-A-S-S buttons, results
   ui/logo.js               draws the logo from assets/logo.svg, on the screens and on the 3D signs and rug
   ui/bayani.jsx            Bayani the hologram on the screens: his figure, his round button, his tips
-  museum/runtime.js        the 3D loop: walking, camera, when and where Bayani appears, what you are next to, and
-                           the kit the game rooms use
+  museum/runtime.js        the 3D loop: walking, camera, when and where Bayani appears, the other visitors, what you
+                           are next to, and the kit the game rooms use
   museum/world.js          builds the halls, the works on the walls and the story stands
   museum/characters.js     your character, and Bayani as a hologram of light; the go bag and the hands that hold things
+  museum/visitors.js       the other visitors, a class on a field trip: where people can walk, and how the groups go
+                           from work to work and keep out of your way (no three.js in it, so npm test checks it alone)
+  museum/people.js         draws the class: the pupils and their teacher walking, looking, pointing, talking and
+                           waving; each is a few pieces for phones, and fades when it comes between the camera and you
   museum/content.js        rooms, doors, works and their text, the two games' names and tips
   museum/store.js          each visitor's progress, kept on this device
   rooms/gobag.js           the Go Bag Room: packing table, tables, cabinet, drawers, crate, cooler
@@ -161,6 +172,7 @@ pwa/
   make_icons.py            makes the PNG icons and the tab icon from src/assets/logo.svg
 tests/
   logic.test.mjs           rules checks, run by npm test
+  visitors.test.mjs        the other visitors on a small made-up museum, run by npm test
   e2e/                     browser checks (see above)
 .github/workflows/
   deploy.yml               checks, builds and publishes the web version to GitHub Pages

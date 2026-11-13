@@ -1,6 +1,7 @@
 // Runs TANGHALAN: renders the museum, walks the player with the joystick or keys, keeps the
 // camera behind them and inside the walls, brings in Bayani the hologram guide when he is needed,
-// and reports which room the player is in and what they are standing next to.
+// moves the museum's other visitors (a class on a field trip, see visitors.js), and reports which room
+// the player is in and what they are standing next to.
 //
 // The game rooms plug in here (opts.rooms): each is a function that gets a small kit (the scene, the
 // player, ways to add things you can walk up to or tap, to steer the stick and the camera) and returns a
@@ -12,6 +13,8 @@
 import { CEIL, SPAWN, room, roomAt } from './content.js';
 import { buildWorld } from './world.js';
 import { makeKid, makeHologram } from './characters.js';
+import { makeGrid, createVisitors } from './visitors.js';
+import { makePerson, posePerson, fadePerson, disposePerson } from './people.js';
 
 const SPEED = 3.0;          // metres per second
 const RADIUS = 0.3;         // how close the player can get to walls
@@ -172,6 +175,22 @@ export function createMuseum(canvas, opts) {
   (opts.rooms || []).forEach((make) => { const r = make(kit); rooms[r.id] = r; });
   refreshTargets();
 
+  // ---- the other visitors: a class on a field trip with their teacher (not in the practice corner) ----
+  // They walk the halls and look at the works (visitors.js), but never go into the game rooms.
+  const crowd = opts.practice || opts.visitors === false ? null : (() => {
+    const grid = makeGrid({ x0: -13, z0: -20, x1: 13, z1: 9, colliders, walkable: (x, z) => { const r = roomAt(x, z); return !!r && !r.game; } });
+    const works = items.filter((it) => it.type === 'work' && it.spot && it.center && !room(it.work.room).game).map((it) => ({ id: it.id, spot: it.spot, center: it.center }));
+    // the teacher's group crosses the Bulwagan ahead of you to a story stand; the others are in the halls beside the lobby
+    const v = createVisitors({ grid, works, starts: [{ work: 'drill', x: 0.7, z: -4.2 }, 'baha', 'bahaghari'] });
+    const figures = v.people.map((p) => {
+      const f = makePerson(T, p);
+      f.group.position.set(p.x, 0, p.z); f.group.rotation.y = p.yaw;
+      scene.add(f.group);
+      return f;
+    });
+    return { v, figures };
+  })();
+
   // ---- the loop ----
   let raf = 0, last = 0, running = false;
   const look = new T.Vector3();
@@ -254,6 +273,17 @@ export function createMuseum(canvas, opts) {
     H.yaw = turn(H.yaw, Math.atan2(S.x - H.x, S.z - H.z), dt * 5);
     bayani.group.position.set(H.x, 0, H.z); bayani.group.rotation.y = H.yaw;
     bayani.update(H.k, S.t, dt);
+
+    // the other visitors: they make way for you and for Bayani, and leave the work you stop at to you
+    if (crowd) {
+      crowd.v.update(dt, { x: S.x, z: S.z }, work ? work.id : null, H.k > 0.3 ? [{ x: H.x, z: H.z }] : []);
+      crowd.v.people.forEach((p, k) => {
+        const f = crowd.figures[k], g = f.group;
+        const moved = Math.hypot(p.x - g.position.x, p.z - g.position.z);
+        g.position.set(p.x, 0, p.z); g.rotation.y = turn(g.rotation.y, p.yaw, dt * 8);
+        posePerson(f, p.act, moved, S.t, dt);
+      });
+    }
   }
   // where Bayani can stand: free floor in the room you are in
   const open = (p) => !blocked(p[0], p[1], 0.3) && !!S.room && roomAt(p[0], p[1]) === S.room;
@@ -311,6 +341,7 @@ export function createMuseum(canvas, opts) {
     }
     camera.position.copy(camWant);
     look.copy(lookWant); camera.lookAt(look);
+    if (crowd) { const head = { x: S.x, y: 1.05, z: S.z }; crowd.figures.forEach((f) => fadePerson(f, camera.position, head, camBlend < 0.5)); }
     ring.rotation.y += 0.01;
     flicker.forEach((f) => { const k = f.userData.flick, sc = 0.78 + 0.32 * Math.abs(Math.sin(S.t * 7 + k.k)); f.scale.set(1, sc, 1); f.position.y = k.base + (k.h * sc) / 2; });
     items.forEach((it) => { if (it.bubble && it.bubble.visible) it.bubble.position.y = it.bubbleAt.y + Math.sin(S.t * 2.2 + it.bubbleAt.x) * 0.05; });
@@ -369,6 +400,18 @@ export function createMuseum(canvas, opts) {
     debugCamera(c) { S.cam = c ? Object.assign(() => c, { test: true }) : null; },
     // for tests: the things you can walk up to, and where to stand for each
     debugItems() { return items.filter((it) => !it.hidden).map((it) => ({ id: it.id, type: it.type, spot: it.spot || it.at || null, center: it.center || null })); },
+    // for tests: the other visitors (where each is, which room, what they do, how faded each is), what each group is
+    // looking at, and the boxes nobody walks through; null when there are none (the practice corner)
+    debugVisitors() {
+      if (!crowd) return null;
+      const d = crowd.v.debug();
+      d.people.forEach((p, k) => {
+        const r = roomAt(p.x, p.z);
+        p.alpha = Math.round(crowd.figures[k].alpha * 100) / 100; p.room = r ? r.id : null; p.gameRoom = !!(r && r.game);
+      });
+      d.colliders = colliders.map((b) => ({ x0: b.x0, x1: b.x1, z0: b.z0, z1: b.z1 }));
+      return d;
+    },
     // for tests: where a point in the world shows up on the screen, in page pixels
     screenOf(x, y, z) { const v = new T.Vector3(x, y, z).project(camera), r = canvas.getBoundingClientRect(); return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height, front: v.z < 1 }; },
     dispose() {
@@ -380,6 +423,7 @@ export function createMuseum(canvas, opts) {
       canvas.removeEventListener('pointerdown', onDown); canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerup', onUp); canvas.removeEventListener('pointercancel', onUp); canvas.removeEventListener('wheel', onWheel);
       world.dispose();
+      if (crowd) crowd.figures.forEach(disposePerson);
       [me.group, bayani.group].forEach((g) => g.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }));
       renderer.dispose();
       try { renderer.forceContextLoss(); } catch (e) { /* already lost */ }

@@ -46,6 +46,7 @@ with served(port=8818) as url, sync_playwright() as p:
     d = me(pg)
     run.check(d['room'] == 'bulwagan' and done(pg) == [], 'Start the practice opens a corner of the real museum: the main hall')
     run.check(now(pg) == 'Push the joystick to walk.', 'it says what to try first: Push the joystick to walk')
+    run.check(pg.evaluate(f'{T}.debugVisitors()') is None, 'the practice corner has no other visitors in it')
     run.check(pg.locator(P + ' [data-joystick]').count() == 1 and pg.locator(P + ' [data-bayani]').count() == 1, "the practice has its own joystick and Bayani's button")
     js, vw = box(pg, P + ' [data-joystick]'), box(pg, '.practice-view')
     run.check(js['x'] >= vw['x'] and js['y'] >= vw['y'] and js['x'] + js['width'] <= vw['x'] + vw['width'] and js['y'] + js['height'] <= vw['y'] + vw['height'], 'the joystick sits inside the practice view')

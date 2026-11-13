@@ -212,7 +212,7 @@ function ManualSheet({ onClose, onWalk }) {
 
 const WALK = [
   ['🏛️', 'Welcome to TANGHALAN', 'A museum of drawings, stories, poems, comics and letters by kids, about staying safe and helping each other. Tap Enter the museum, pick your animal and come in.'],
-  ['🕹️', 'Walk and look around', 'Move with the joystick, or the arrow keys on a computer. Drag the screen to look around and pinch to zoom. Tap the little map to see where you are or to jump to a room.'],
+  ['🕹️', 'Walk and look around', 'Move with the joystick, or the arrow keys on a computer. Drag the screen to look around and pinch to zoom. Tap the little map to see where you are or to jump to a room. A class on a field trip is visiting too, with their teacher. They make way for you.'],
   ['🖼️', 'Meet the works', 'Walk up to a picture or a story stand and tap Look or Read. Switch between Filipino and English, tap Read it to me, and give a sticker. Bayani, the hologram guide, appears beside each work with a tip. Tap his round button any time you need him.'],
   ['🎒', 'Pack a go bag', 'In the Go Bag Room, take an empty go bag from the packing table. Walk to the tables (on Difficult, open the cabinet, the drawers, the crate and the cooler), tap a thing to look at it, then pack it or leave it. Watch the weight: a heavy bag slows you down. Zip it up when you are ready.'],
   ['🧯', 'Put out a practice fire', 'In the Fire Safety Room, press the fire alarm by the door, then take the extinguisher. Stand a safe distance from the fire with the door behind you, tap Use it here, and do P-A-S-S: Pull the pin, Aim low, Squeeze, Sweep.'],

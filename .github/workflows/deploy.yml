@@ -1,4 +1,5 @@
-# Checks the game rules, builds the web version and publishes it to GitHub Pages on every push to main.
+# Checks the game rules and the other visitors, builds the web version and publishes it to GitHub Pages on every
+# push to main.
 # Needs Settings > Pages > Source set to "GitHub Actions".
 name: Deploy to GitHub Pages
 
